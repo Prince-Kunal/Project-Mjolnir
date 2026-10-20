@@ -42,6 +42,7 @@ docs/                PLAN.md, DECISIONS.md
    TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)   # paste the generated value
    GOOGLE_REDIRECT_URI=http://127.0.0.1:55421/functions/v1/google-callback
    APP_URL=http://localhost:5173
+   WORKER_SECRET=local-dev-worker-secret   # must match the Vault value in supabase/seed.sql
    ```
 
 ## Setup
@@ -80,8 +81,28 @@ The local stack uses ports in the 554xx range (API `55421`, DB `55422`, Studio `
 | `pnpm db:types`        | Regenerate `packages/db-types` after a migration         |
 | `supabase db reset`    | Rebuild the local database from migrations and seed data |
 
+## How sync runs
+
+Postgres decides when work is due and wakes the `worker` Edge Function only when there is some:
+
+1. Enabling a calendar, the 10-minute poll, or `request_sync()` puts a message on the `sync_jobs` queue.
+2. `private.dispatch()` runs every 10 seconds (pg_cron). If a message is visible, it calls `worker`
+   through pg_net; otherwise it does nothing.
+3. `worker` leases the calendar, pages through Google, and applies each page in one transaction.
+   It stops after 100 seconds and continues in the next run.
+
+`pnpm functions:serve` must be running locally for step 3. Useful queries:
+
+```sql
+select * from private.sync_state;            -- per-calendar sync state and last error
+select * from pgmq.q_sync_jobs;              -- waiting messages
+select * from private.dead_jobs;             -- jobs that failed 5 times
+select private.queue_sync('<calendar id>', 'incremental');  -- sync one calendar now
+```
+
 ## Database changes
 
 Every schema change is a migration file in `supabase/migrations/`, never an edit in the dashboard.
 Create one with `supabase migration new <name> < /dev/null` (the CLI reads stdin as the file body),
-then run `supabase db reset` and `pnpm db:types`. CI fails if the generated types are stale.
+then run `supabase migration up` (keeps local data) or `supabase db reset` (rebuilds it, which signs
+everyone out locally), and `pnpm db:types`. CI fails if the generated types are stale.

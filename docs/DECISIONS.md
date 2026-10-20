@@ -32,3 +32,19 @@ Choices the plan does not cover, one line each, with the reason. Newest at the b
 - Onboarding splits "connect" and "pick calendars" into two screens; the areas and habits step joins in Phase 3.
 - Local Edge Functions read every secret from the gitignored `supabase/.env` via `pnpm functions:serve`; the same file feeds the Google sign-in provider in `config.toml`.
 - Per-user rate limits (section 13) start in Phase 2 with the first routes that sync or write; the connect route only stores a short-lived nonce.
+
+## Phase 2
+
+- Sync rules stay in TypeScript: the worker plans each page of events with `packages/domain` and pure `_shared/sync/plan.ts`, then `svc_apply_sync_ops` applies the page in one transaction. SQL only stores results.
+- Each planned op carries the item's status and `finalized` as read; if the item changed meanwhile (a tick), the op is skipped and the page re-runs, so a tick is never overwritten.
+- `items.google_seen_at` records the last run that saw an event. At the end of a full sync, active items in the window that the run did not see are deleted by D1 and D2, so a 410 resync catches events deleted while the token was lost.
+- `items.is_all_day` records all-day items, which start at the logical day's boundary and have no planned minutes.
+- `items.calendar_id` and `task_list_id` are `on delete set null`, so history survives a removed calendar; the Phase 1 account-switch note is resolved this way.
+- The logical day is computed with `Intl` instead of `date-fns-tz`, so `packages/domain` has no dependencies and runs unchanged in Deno.
+- Tags must begin a word: `#` cannot follow a letter, digit or `_ # @ & / -`, and cannot run into `@`, so `a#b@x.com` and `#b@x` are not tags.
+- `worker` checks an `x-worker-secret` header (Vault `worker_secret`, function secret `WORKER_SECRET`) instead of the service key, because the new `sb_secret_` keys are not JWTs; JWT verification is off for it.
+- The worker answers 202 at once and drains in `EdgeRuntime.waitUntil`, since pg_net times out after 5 seconds.
+- `sync_state` keeps one request per calendar (`queued`, `pending_kind`), and the run in progress (`run_kind`, `page_token`, window), so a run that runs out of time continues with the same window. A request left waiting 10 minutes is sent again.
+- Failed syncs retry with 30 s doubling to 8 minutes; after 5 attempts the job goes to `private.dead_jobs` and the 10-minute poll picks the calendar up again later.
+- Working-location events are not tasks and are treated as deleted.
+- The local dispatcher reaches functions at `http://kong:8000`; `seed.sql` stores that URL and a local-only worker secret in Vault.
