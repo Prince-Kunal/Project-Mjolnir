@@ -434,3 +434,8 @@ import_map = "./functions/deno.json"
 [functions.google-callback]
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+# Woken by the SQL dispatcher through pg_net; checks the x-worker-secret header instead of a JWT.
+[functions.worker]
+verify_jwt = false
+import_map = "./functions/deno.json"

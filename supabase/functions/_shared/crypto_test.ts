@@ -7,6 +7,7 @@ import {
   importTokenKey,
   pkceChallenge,
   randomToken,
+  timingSafeEqual,
 } from './crypto.ts';
 
 const KEY = bytesToBase64(new Uint8Array(32).fill(7));
@@ -51,4 +52,11 @@ Deno.test('pkceChallenge matches the RFC 7636 example', async () => {
     await pkceChallenge('dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'),
     'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
   );
+});
+
+Deno.test('timingSafeEqual matches only identical strings', () => {
+  assertEquals(timingSafeEqual('secret', 'secret'), true);
+  assertEquals(timingSafeEqual('secret', 'secreT'), false);
+  assertEquals(timingSafeEqual('secret', 'secret!'), false);
+  assertEquals(timingSafeEqual('', 'x'), false);
 });

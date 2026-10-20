@@ -215,13 +215,13 @@ isOneToOne: false
 { Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_email"?: string,"p_google_sub": string,"p_refresh_token_enc"?: string,"p_scopes": (string)[],"p_user_id": string }; Returns: undefined
                            },
 "svc_sync_checkpoint":
-{ Args: { "p_page_token": string,"p_source_id": string }; Returns: undefined
+{ Args: { "p_page_token"?: string,"p_source_id": string }; Returns: undefined
                            },
 "svc_sync_fail":
 { Args: { "p_error": string,"p_reset"?: boolean,"p_retry_seconds"?: number,"p_source_id": string }; Returns: number
                            },
 "svc_sync_finish":
-{ Args: { "p_source_id": string,"p_sync_token": string }; Returns: undefined
+{ Args: { "p_source_id": string,"p_sync_token"?: string }; Returns: undefined
                            },
 "svc_sync_items":
 { Args: { "p_calendar_id": string,"p_event_ids": (string)[] }; Returns: Json[]

@@ -547,7 +547,7 @@ end;
 $$;
 
 -- Out of time mid-run: keep the page token, release the lease, and come back for the rest.
-create function public.svc_sync_checkpoint(p_source_id uuid, p_page_token text)
+create function public.svc_sync_checkpoint(p_source_id uuid, p_page_token text default null)
 returns void
 language plpgsql
 security definer
@@ -561,7 +561,7 @@ end;
 $$;
 
 -- Last page done: store the new sync token and end the run.
-create function public.svc_sync_finish(p_source_id uuid, p_sync_token text)
+create function public.svc_sync_finish(p_source_id uuid, p_sync_token text default null)
 returns void
 language plpgsql
 security definer
