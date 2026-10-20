@@ -38,6 +38,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@mjolnir/db-types':
+        specifier: workspace:*
+        version: link:../../packages/db-types
       '@mjolnir/domain':
         specifier: workspace:*
         version: link:../../packages/domain
@@ -93,6 +96,8 @@ importers:
       vitest:
         specifier: ^5.0.5
         version: 5.0.5(jsdom@30.1.3)(vite@8.3.4(jiti@2.7.0)(terser@5.51.2))
+
+  packages/db-types: {}
 
   packages/domain: {}
 
