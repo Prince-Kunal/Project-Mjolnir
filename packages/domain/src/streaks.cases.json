@@ -1,0 +1,107 @@
+{
+  "about": "Section 3.7 streak scenarios, shared by the TypeScript tests and the generated pgTAP test (supabase/tests/05_streak_cases.test.sql). Weeks start on Monday unless weekStart says otherwise. Run `pnpm gen:shared-tests` after editing.",
+  "cases": [
+    {
+      "name": "good days grow the streak",
+      "days": [
+        ["2026-10-05", 60],
+        ["2026-10-06", 100],
+        ["2026-10-07", 50]
+      ],
+      "streak": [1, 2, 3],
+      "pass": [false, false, false],
+      "current": 3,
+      "best": 3
+    },
+    {
+      "name": "one bad day in a week uses the rest pass and keeps the streak",
+      "days": [
+        ["2026-10-05", 80],
+        ["2026-10-06", 20],
+        ["2026-10-07", 90]
+      ],
+      "streak": [1, 1, 2],
+      "pass": [false, true, false],
+      "current": 2,
+      "best": 2
+    },
+    {
+      "name": "two bad days in a week reset the streak",
+      "days": [
+        ["2026-10-05", 80],
+        ["2026-10-06", 20],
+        ["2026-10-07", 90],
+        ["2026-10-08", 49.9]
+      ],
+      "streak": [1, 1, 2, 0],
+      "pass": [false, true, false, false],
+      "current": 0,
+      "best": 2
+    },
+    {
+      "name": "a bad Sunday then a bad Monday fall in different weeks and keep the streak",
+      "days": [
+        ["2026-10-10", 70],
+        ["2026-10-11", 10],
+        ["2026-10-12", 0],
+        ["2026-10-13", 75]
+      ],
+      "streak": [1, 1, 1, 2],
+      "pass": [false, true, true, false],
+      "current": 2,
+      "best": 2
+    },
+    {
+      "name": "a day with nothing planned uses the pass",
+      "days": [
+        ["2026-10-05", 100],
+        ["2026-10-06", 0]
+      ],
+      "streak": [1, 1],
+      "pass": [false, true],
+      "current": 1,
+      "best": 1
+    },
+    {
+      "name": "a late mark-done that turns a bad day good is recomputed from that day",
+      "days": [
+        ["2026-10-05", 80],
+        ["2026-10-06", 55],
+        ["2026-10-07", 30],
+        ["2026-10-08", 90]
+      ],
+      "streak": [1, 2, 2, 3],
+      "pass": [false, false, true, false],
+      "current": 3,
+      "best": 3
+    },
+    {
+      "name": "best survives a reset",
+      "days": [
+        ["2026-10-05", 90],
+        ["2026-10-06", 90],
+        ["2026-10-07", 90],
+        ["2026-10-08", 0],
+        ["2026-10-09", 0],
+        ["2026-10-10", 90]
+      ],
+      "streak": [1, 2, 3, 3, 0, 1],
+      "pass": [false, false, false, true, false, false],
+      "current": 1,
+      "best": 3
+    },
+    {
+      "name": "weeks starting on Sunday move the boundary",
+      "weekStart": 7,
+      "days": [
+        ["2026-10-10", 70],
+        ["2026-10-11", 10],
+        ["2026-10-12", 0]
+      ],
+      "streak": [1, 1, 0],
+      "pass": [false, true, false],
+      "current": 0,
+      "best": 1
+    }
+  ]
+}

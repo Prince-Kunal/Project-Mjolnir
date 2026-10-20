@@ -1,7 +1,7 @@
 // Section 3.3: the logical day. Built on Intl so it runs unchanged in browsers and Deno.
 import type { LogicalDate } from './types.ts';
 
-interface WallClock {
+export interface WallClock {
   year: number;
   month: number;
   day: number;
@@ -28,7 +28,8 @@ function formatter(timeZone: string): Intl.DateTimeFormat {
   return f;
 }
 
-function wallClock(instant: Date, timeZone: string): WallClock {
+/** Local wall-clock fields of an instant in `timeZone`. */
+export function wallClock(instant: Date, timeZone: string): WallClock {
   const parts: Record<string, number> = {};
   for (const p of formatter(timeZone).formatToParts(instant)) {
     if (p.type !== 'literal') parts[p.type] = Number(p.value);
