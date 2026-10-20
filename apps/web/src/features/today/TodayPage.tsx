@@ -1,17 +1,19 @@
 import { addDays } from '@mjolnir/domain';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../lib/toast.ts';
 import { Button, Loading, Notice } from '../../components/ui.tsx';
 import { type DayItem, useDay, useToggleItem } from '../../lib/day.ts';
 import { formatDay } from '../../lib/format.ts';
 import { type Area, useAreas, useProfile } from '../../lib/queries.ts';
 import { BacklogDrawer } from './BacklogDrawer.tsx';
+import { DailyNote } from './DailyNote.tsx';
 import { ItemRow } from './ItemRow.tsx';
 import { ItemSheet } from './ItemSheet.tsx';
 import { QuickAddTask } from './QuickAddTask.tsx';
 import { BAND_COLOR, BAND_LABEL } from '../../lib/bands.ts';
 import { ScoreRing } from './ScoreRing.tsx';
+import { StreakLine } from './StreakLine.tsx';
 
 const GROUP_KEY = 'mjolnir.today.byArea';
 
@@ -166,6 +168,10 @@ export function TodayPage() {
               </span>
             )}
           </p>
+          <StreakLine streak={view.streak} todayRate={view.score.rate} isToday={isToday} />
+          {view.finalized && (
+            <p className="mt-1 pl-1 text-xs text-muted">Day closed · score frozen</p>
+          )}
           {!isToday && (
             <button
               onClick={() => go(view.today)}
@@ -177,6 +183,18 @@ export function TodayPage() {
         </div>
         <ScoreRing rate={view.score.rate} band={view.score.band} />
       </header>
+
+      {view.missed_open > 0 && (
+        <Link
+          to="/missed"
+          className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-band-fair/40 bg-band-fair/10 px-4 py-3 text-sm"
+        >
+          <span>
+            You missed {view.missed_open} task{view.missed_open === 1 ? '' : 's'}. Reschedule?
+          </span>
+          <span className="font-medium text-band-fair">Open</span>
+        </Link>
+      )}
 
       <div className="mt-6 flex items-center justify-between gap-2">
         <div
@@ -229,9 +247,13 @@ export function TodayPage() {
         ))
       )}
 
-      <div className="mt-8">
-        <QuickAddTask date={view.date} />
-      </div>
+      {!view.finalized && (
+        <div className="mt-8">
+          <QuickAddTask date={view.date} />
+        </div>
+      )}
+
+      <DailyNote key={view.date} date={view.date} initial={view.note ?? ''} />
 
       <ItemSheet
         item={open}

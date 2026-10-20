@@ -36,3 +36,18 @@ export function googleEventUrl(eventId: string, calendarId: string): string {
   const eid = btoa(`${eventId} ${calendarId}`).replace(/=+$/, '');
   return `https://calendar.google.com/calendar/event?eid=${eid}`;
 }
+
+/** "Wed 22 Oct" for an instant, in the user's timezone. */
+export function formatShortDay(iso: string, timeZone: string): string {
+  return fmt(timeZone, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(iso));
+}
+
+/** "Wed" for a logical date. */
+export function formatWeekday(date: string): string {
+  return fmt('UTC', { weekday: 'short' }).format(new Date(`${date}T12:00:00Z`));
+}
+
+/** "22 Oct" for a logical date. */
+export function formatDayMonth(date: string): string {
+  return fmt('UTC', { day: 'numeric', month: 'short' }).format(new Date(`${date}T12:00:00Z`));
+}

@@ -5,6 +5,7 @@ import { RequireAuth, RequireOnboarded } from '../features/auth/guards.tsx';
 import { SignInPage } from '../features/auth/SignInPage.tsx';
 import { AnalyticsPage } from '../features/analytics/AnalyticsPage.tsx';
 import { DeadlinesPage } from '../features/deadlines/DeadlinesPage.tsx';
+import { MissedPage } from '../features/missed/MissedPage.tsx';
 import { OnboardingPage } from '../features/onboarding/OnboardingPage.tsx';
 import { MorePage } from '../features/settings/MorePage.tsx';
 import { TodayPage } from '../features/today/TodayPage.tsx';
@@ -14,6 +15,7 @@ import { NotFound } from './NotFound.tsx';
 export const appRoutes: RouteObject[] = [
   { index: true, element: <TodayPage /> },
   { path: 'week', element: <WeekPage /> },
+  { path: 'missed', element: <MissedPage /> },
   { path: 'deadlines', element: <DeadlinesPage /> },
   { path: 'analytics', element: <AnalyticsPage /> },
   { path: 'more', element: <MorePage /> },

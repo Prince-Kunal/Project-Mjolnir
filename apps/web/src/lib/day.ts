@@ -26,16 +26,63 @@ export interface DayItem {
   tags: { id: string; name: string; source: string }[];
 }
 
+export interface StreakInfo {
+  current: number;
+  best: number;
+  /** The day this week's rest pass was used, or null while it is still available. */
+  pass_used_on: string | null;
+}
+
 export interface DayView {
   date: string;
   today: string;
+  finalized: boolean;
   score: DayScore;
+  note: string | null;
+  streak: StreakInfo;
+  missed_open: number;
   items: DayItem[];
+}
+
+export interface MissedItem extends DayItem {
+  late_done_until: string | null;
+}
+
+export interface DayRow {
+  date: string;
+  finalized: boolean;
+  planned: number;
+  done: number;
+  rate: number;
+  band: DayScore['band'];
+  counts: boolean | null;
+  rest_pass_used: boolean | null;
+  streak_after: number | null;
+  note: string | null;
+}
+
+export interface MonthRow {
+  month: number;
+  days_closed: number;
+  days_counted: number;
+  points_planned: number;
+  points_done: number;
+  rate: number;
+  excellent_days: number;
+  best_streak: number;
 }
 
 /** `today` follows the user's logical day on the server; a date pins one day. */
 export const dayKey = (date?: string) => ['day', date ?? 'today'] as const;
 export const backlogKey = ['backlog'] as const;
+export const missedKey = ['missed'] as const;
+
+/** Everything derived from items: refetched after any change to them. */
+const ITEM_VIEWS = [['day'], backlogKey, missedKey, ['days'], ['months']] as const;
+
+function invalidateItemViews(qc: QueryClient) {
+  for (const queryKey of ITEM_VIEWS) void qc.invalidateQueries({ queryKey });
+}
 
 async function rpc<T>(name: string, args?: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.rpc(name as never, args as never);
@@ -168,10 +215,7 @@ export function useItemsRealtime() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => {
-        void qc.invalidateQueries({ queryKey: ['day'] });
-        void qc.invalidateQueries({ queryKey: backlogKey });
-      }, 150);
+      timer = setTimeout(() => invalidateItemViews(qc), 150);
     };
     let wasDown = false;
     const channel = supabase
@@ -179,6 +223,11 @@ export function useItemsRealtime() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'items', filter: `user_id=eq.${userId}` },
+        refresh,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'day_summaries', filter: `user_id=eq.${userId}` },
         refresh,
       )
       .subscribe((status) => {
@@ -216,4 +265,97 @@ export function useForegroundRefresh() {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [qc, signedIn]);
+}
+
+// Missed inbox (3.5) ---------------------------------------------------------------------------
+
+export function useMissedInbox() {
+  return useQuery({ queryKey: missedKey, queryFn: () => rpc<MissedItem[]>('missed_inbox') });
+}
+
+function useItemMutation<V, R>(fn: (v: V) => Promise<R>) {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: fn, onSettled: () => invalidateItemViews(qc) });
+}
+
+export const useDismissMissed = () =>
+  useItemMutation((id: string) => rpc('dismiss_missed', { p_id: id }));
+export const useMarkLateDone = () =>
+  useItemMutation((id: string) => rpc('mark_late_done', { p_id: id }));
+export const useRescheduleManual = () =>
+  useItemMutation(({ id, date }: { id: string; date: string }) =>
+    rpc('reschedule_manual', { p_id: id, p_date: date }),
+  );
+
+/** Calls app-api, which writes to Google; surfaces its error message. */
+async function appApi<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke<T>(`app-api/${path}`, {
+    method: 'POST',
+    body,
+  });
+  if (error) {
+    let message = 'Something went wrong. Try again.';
+    try {
+      const detail = await (error as { context?: Response }).context?.json();
+      if (detail?.error === 'reconnect_needed')
+        message = 'Reconnect Google Calendar in Settings first.';
+      else if (detail?.error === 'google_failed')
+        message = 'Google did not accept the event. Try again.';
+      else if (typeof detail?.error === 'string') message = detail.error;
+    } catch {
+      // Keep the generic message.
+    }
+    throw new Error(message);
+  }
+  return data as T;
+}
+
+export const useRescheduleEvent = () =>
+  useItemMutation(({ id, start, end }: { id: string; start: string; end: string }) =>
+    appApi(`missed/${id}/reschedule`, { start, end }),
+  );
+
+export const useBulkMissed = () =>
+  useItemMutation((action: 'reschedule_tomorrow' | 'dismiss_all') =>
+    appApi<{ rescheduled?: number; failed?: number; dismissed?: number }>('missed/bulk', {
+      action,
+    }),
+  );
+
+export function useBusyBlocks(from: string, to: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['busy', from, to],
+    enabled,
+    queryFn: () => rpc<{ start: string; end: string }[]>('busy_blocks', { p_from: from, p_to: to }),
+  });
+}
+
+// Daily note (3.12) and tables -----------------------------------------------------------------
+
+export function useSaveNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ date, body }: { date: string; body: string }) => {
+      const user_id = useAuth.getState().session?.user.id;
+      const { error } = await supabase
+        .from('daily_notes')
+        .upsert({ user_id: user_id!, logical_date: date, body });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['days'] }),
+  });
+}
+
+export function useDaysRange(from: string, to: string) {
+  return useQuery({
+    queryKey: ['days', from, to],
+    queryFn: () => rpc<DayRow[]>('days_range', { p_from: from, p_to: to }),
+  });
+}
+
+export function useMonths(year: number) {
+  return useQuery({
+    queryKey: ['months', year],
+    queryFn: () => rpc<MonthRow[]>('months_summary', { p_year: year }),
+  });
 }
