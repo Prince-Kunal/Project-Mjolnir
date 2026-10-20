@@ -23,13 +23,92 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            [_ in never]: never
+            "calendars": {
+                  Row: {
+                    "access_role": string | null,"color": string | null,"created_at": string,"google_calendar_id": string,"id": string,"is_primary": boolean,"last_full_sync_at": string | null,"last_sync_at": string | null,"summary": string | null,"sync_enabled": boolean,"user_id": string
+                  }
+                  Insert: {
+                    "access_role"?: string | null,"color"?: string | null,"created_at"?: string,"google_calendar_id": string,"id"?: string,"is_primary"?: boolean,"last_full_sync_at"?: string | null,"last_sync_at"?: string | null,"summary"?: string | null,"sync_enabled"?: boolean,"user_id": string
+                  }
+                  Update: {
+                    "access_role"?: string | null,"color"?: string | null,"created_at"?: string,"google_calendar_id"?: string,"id"?: string,"is_primary"?: boolean,"last_full_sync_at"?: string | null,"last_sync_at"?: string | null,"summary"?: string | null,"sync_enabled"?: boolean,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"color_rules": {
+                  Row: {
+                    "color_key": string,"points": number,"primary_for_points": boolean,"user_id": string
+                  }
+                  Insert: {
+                    "color_key": string,"points": number,"primary_for_points"?: boolean,"user_id": string
+                  }
+                  Update: {
+                    "color_key"?: string,"points"?: number,"primary_for_points"?: boolean,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"profiles": {
+                  Row: {
+                    "avatar_url": string | null,"created_at": string,"day_boundary_hour": number,"deadline_warning_days": number,"evening_reminder_time": string,"google_item_type": string,"id": string,"include_all_day": boolean,"morning_prompt_time": string,"name": string | null,"onboarded_at": string | null,"timezone": string,"week_start": number,"writeback_checkmark": boolean
+                  }
+                  Insert: {
+                    "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"id": string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
+                  }
+                  Update: {
+                    "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"id"?: string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"task_lists": {
+                  Row: {
+                    "created_at": string,"google_tasklist_id": string,"id": string,"last_sync_at": string | null,"points": number,"sync_enabled": boolean,"title": string | null,"user_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"google_tasklist_id": string,"id"?: string,"last_sync_at"?: string | null,"points"?: number,"sync_enabled"?: boolean,"title"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"google_tasklist_id"?: string,"id"?: string,"last_sync_at"?: string | null,"points"?: number,"sync_enabled"?: boolean,"title"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "google_connection":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"is_valid_timezone":
+{ Args: { "tz": string }; Returns: boolean
+                           },
+"svc_consume_oauth_state":
+{ Args: { "p_nonce": string }; Returns: {
+              "code_verifier": string,"user_id": string
+            }[]
+                           },
+"svc_create_oauth_state":
+{ Args: { "p_code_verifier": string,"p_nonce": string,"p_ttl_seconds"?: number,"p_user_id": string }; Returns: undefined
+                           },
+"svc_get_google_account":
+{ Args: { "p_user_id": string }; Returns: {
+              "access_expires_at": string,"access_token_enc": string,"email": string,"google_sub": string,"refresh_token_enc": string,"scopes": (string)[],"status": string
+            }[]
+                           },
+"svc_save_google_account":
+{ Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_email": string,"p_google_sub": string,"p_refresh_token_enc": string,"p_scopes": (string)[],"p_user_id": string }; Returns: undefined
+                           },
+"svc_update_google_tokens":
+{ Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_status": string,"p_user_id": string }; Returns: undefined
+                           },
+"svc_upsert_calendars":
+{ Args: { "p_calendars": Json,"p_user_id": string }; Returns: undefined
+                           }
           }
           Enums: {
             [_ in never]: never
