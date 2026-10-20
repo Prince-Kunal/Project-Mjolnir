@@ -60,30 +60,32 @@ export function ColorMap({ rules, onChange, defaultColor }: Props) {
                     aria-checked={rule.points === p}
                     onClick={() => onChange(setRulePoints(rules, c.key as ColorKey, p))}
                     className={`flex-1 py-1.5 text-sm transition ${
-                      rule.points === p
-                        ? 'bg-accent font-semibold text-bg'
-                        : 'text-muted hover:bg-surface-2'
+                      rule.points !== p
+                        ? 'text-muted hover:bg-surface-2'
+                        : p === 0
+                          ? 'bg-surface-2 font-semibold text-text'
+                          : 'bg-accent font-semibold text-bg'
                     }`}
                   >
                     {p}
                   </button>
                 ))}
               </div>
-              <label className="col-span-2 flex items-center gap-2 text-xs text-muted sm:col-span-1 sm:justify-center">
-                {showPrimary && (
-                  <>
-                    <input
-                      type="radio"
-                      name={`primary-${rule.points}`}
-                      checked={rule.primaryForPoints}
-                      onChange={() => onChange(setPrimary(rules, c.key as ColorKey))}
-                      className="accent-[var(--color-accent)]"
-                      aria-label={`Use ${c.name} for new ${rule.points}-point events`}
-                    />
-                    <span className="sm:hidden">Use for new {rule.points}-point events</span>
-                  </>
-                )}
-              </label>
+              {showPrimary ? (
+                <label className="col-span-2 flex items-center gap-2 text-xs text-muted sm:col-span-1 sm:justify-center">
+                  <input
+                    type="radio"
+                    name={`primary-${rule.points}`}
+                    checked={rule.primaryForPoints}
+                    onChange={() => onChange(setPrimary(rules, c.key as ColorKey))}
+                    className="accent-[var(--color-accent)]"
+                    aria-label={`Use ${c.name} for new ${rule.points}-point events`}
+                  />
+                  <span className="sm:hidden">Use for new {rule.points}-point events</span>
+                </label>
+              ) : (
+                <span className="hidden sm:block" />
+              )}
             </li>
           );
         })}
