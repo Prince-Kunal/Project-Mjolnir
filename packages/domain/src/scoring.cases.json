@@ -1,0 +1,104 @@
+{
+  "about": "Shared by the TypeScript tests and the generated pgTAP test (supabase/tests/03_scoring_cases.test.sql). Regenerate that file with `pnpm gen:score-tests` after editing.",
+  "bands": [
+    { "rate": 0, "band": "not_good" },
+    { "rate": 49.9, "band": "not_good" },
+    { "rate": 50, "band": "fair" },
+    { "rate": 74.9, "band": "fair" },
+    { "rate": 75, "band": "good" },
+    { "rate": 84.9, "band": "good" },
+    { "rate": 85, "band": "excellent" },
+    { "rate": 100, "band": "excellent" }
+  ],
+  "days": [
+    {
+      "name": "nothing planned scores 0",
+      "items": [],
+      "planned": 0,
+      "done": 0,
+      "missed": 0,
+      "rate": 0,
+      "band": "not_good"
+    },
+    {
+      "name": "points-weighted, not item-weighted",
+      "items": [
+        { "points": 3, "status": "done" },
+        { "points": 1, "status": "pending" }
+      ],
+      "planned": 4,
+      "done": 3,
+      "missed": 0,
+      "rate": 75,
+      "band": "good"
+    },
+    {
+      "name": "ignored and deleted items do not count",
+      "items": [
+        { "points": 2, "status": "done" },
+        { "points": 0, "status": "ignored" },
+        { "points": 3, "status": "deleted" },
+        { "points": 2, "status": "missed" }
+      ],
+      "planned": 4,
+      "done": 2,
+      "missed": 2,
+      "rate": 50,
+      "band": "fair"
+    },
+    {
+      "name": "rounds to one decimal",
+      "items": [
+        { "points": 1, "status": "done" },
+        { "points": 1, "status": "pending" },
+        { "points": 1, "status": "pending" }
+      ],
+      "planned": 3,
+      "done": 1,
+      "missed": 0,
+      "rate": 33.3,
+      "band": "not_good"
+    },
+    {
+      "name": "two thirds rounds up",
+      "items": [
+        { "points": 2, "status": "done" },
+        { "points": 1, "status": "missed" }
+      ],
+      "planned": 3,
+      "done": 2,
+      "missed": 1,
+      "rate": 66.7,
+      "band": "fair"
+    },
+    {
+      "name": "exactly 85% is excellent",
+      "items": [
+        { "points": 3, "status": "done" },
+        { "points": 3, "status": "done" },
+        { "points": 3, "status": "done" },
+        { "points": 3, "status": "done" },
+        { "points": 3, "status": "done" },
+        { "points": 2, "status": "done" },
+        { "points": 3, "status": "missed" }
+      ],
+      "planned": 20,
+      "done": 17,
+      "missed": 3,
+      "rate": 85,
+      "band": "excellent"
+    },
+    {
+      "name": "everything done",
+      "items": [
+        { "points": 1, "status": "done" },
+        { "points": 2, "status": "done" }
+      ],
+      "planned": 3,
+      "done": 3,
+      "missed": 0,
+      "rate": 100,
+      "band": "excellent"
+    }
+  ]
+}

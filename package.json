@@ -16,7 +16,8 @@
     "test:functions": "deno test --allow-env --allow-net --config supabase/functions/deno.json supabase/functions",
     "test:db": "supabase test db",
     "db:types": "supabase gen types typescript --local > packages/db-types/src/database.ts",
-    "functions:serve": "supabase functions serve --env-file supabase/.env"
+    "functions:serve": "supabase functions serve --env-file supabase/.env",
+    "gen:score-tests": "node scripts/gen-score-tests.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

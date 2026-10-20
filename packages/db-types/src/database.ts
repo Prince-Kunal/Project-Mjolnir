@@ -23,7 +23,20 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "calendars": {
+            "areas": {
+                  Row: {
+                    "archived_at": string | null,"color": string | null,"created_at": string,"id": string,"name": string,"sort_order": number,"user_id": string
+                  }
+                  Insert: {
+                    "archived_at"?: string | null,"color"?: string | null,"created_at"?: string,"id"?: string,"name": string,"sort_order"?: number,"user_id": string
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"color"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"sort_order"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"calendars": {
                   Row: {
                     "access_role": string | null,"color": string | null,"created_at": string,"google_calendar_id": string,"id": string,"is_primary": boolean,"last_full_sync_at": string | null,"last_sync_at": string | null,"summary": string | null,"sync_enabled": boolean,"user_id": string
                   }
@@ -48,6 +61,25 @@ export type Database = {
                   }
                   Relationships: [
                     
+                  ]
+                },"habits": {
+                  Row: {
+                    "active": boolean,"archived_at": string | null,"area_id": string | null,"created_at": string,"id": string,"points": number,"title": string,"user_id": string,"weekdays": number
+                  }
+                  Insert: {
+                    "active"?: boolean,"archived_at"?: string | null,"area_id"?: string | null,"created_at"?: string,"id"?: string,"points": number,"title": string,"user_id": string,"weekdays"?: number
+                  }
+                  Update: {
+                    "active"?: boolean,"archived_at"?: string | null,"area_id"?: string | null,"created_at"?: string,"id"?: string,"points"?: number,"title"?: string,"user_id"?: string,"weekdays"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "habits_area_id_fkey"
+      columns: ["area_id"]
+isOneToOne: false
+      referencedRelation: "areas"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"item_events": {
                   Row: {
@@ -105,10 +137,22 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "items_area_fk"
+      columns: ["area_id"]
+isOneToOne: false
+      referencedRelation: "areas"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "items_calendar_id_fkey"
       columns: ["calendar_id"]
 isOneToOne: false
       referencedRelation: "calendars"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "items_habit_fk"
+      columns: ["habit_id"]
+isOneToOne: false
+      referencedRelation: "habits"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "items_rescheduled_from_id_fkey"
@@ -148,7 +192,13 @@ isOneToOne: false
                     "area_id"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"user_id"?: string
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "tags_area_fk"
+      columns: ["area_id"]
+isOneToOne: false
+      referencedRelation: "areas"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"task_lists": {
                   Row: {
@@ -169,7 +219,22 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "google_connection":
+            "backlog":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"complete_item":
+{ Args: { "p_actual_minutes"?: number,"p_id": string }; Returns: Json
+                           },
+"create_manual_task":
+{ Args: { "p_area_id"?: string,"p_date"?: string,"p_planned_minutes"?: number,"p_points": number,"p_tags"?: (string)[],"p_title": string }; Returns: Json
+                           },
+"day_view":
+{ Args: { "p_date"?: string }; Returns: Json
+                           },
+"delete_manual_task":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"google_connection":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
 "is_valid_timezone":
@@ -177,6 +242,9 @@ isOneToOne: false
                            },
 "request_sync":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"score_band":
+{ Args: { "p_rate": number }; Returns: string
                            },
 "svc_apply_sync_ops":
 { Args: { "p_calendar_id": string,"p_ops": Json,"p_seen"?: (string)[] }; Returns: Json
@@ -237,6 +305,12 @@ isOneToOne: false
                            },
 "svc_upsert_calendars":
 { Args: { "p_calendars": Json,"p_user_id": string }; Returns: undefined
+                           },
+"uncomplete_item":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"update_item_local":
+{ Args: { "p_id": string,"p_patch": Json }; Returns: Json
                            }
           }
           Enums: {

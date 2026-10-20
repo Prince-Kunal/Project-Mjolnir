@@ -5,3 +5,4 @@ coverage/
 supabase/.temp/
 packages/db-types/src/database.ts
 docs/PLAN.md
+supabase/tests/03_scoring_cases.test.sql
