@@ -68,18 +68,20 @@ The local stack uses ports in the 554xx range (API `55421`, DB `55422`, Studio `
 
 ## Everyday commands
 
-| Command                | What it does                                             |
-| ---------------------- | -------------------------------------------------------- |
-| `pnpm dev`             | Start the web app                                        |
-| `pnpm functions:serve` | Serve Edge Functions locally with `supabase/.env`        |
-| `pnpm test`            | Vitest in every package                                  |
-| `pnpm test:functions`  | Deno tests for Edge Functions                            |
-| `pnpm test:db`         | pgTAP tests against the local database                   |
-| `pnpm lint`            | ESLint                                                   |
-| `pnpm format`          | Prettier                                                 |
-| `pnpm typecheck`       | `tsc --noEmit` in every package                          |
-| `pnpm db:types`        | Regenerate `packages/db-types` after a migration         |
-| `supabase db reset`    | Rebuild the local database from migrations and seed data |
+| Command                | What it does                                              |
+| ---------------------- | --------------------------------------------------------- |
+| `pnpm dev`             | Start the web app                                         |
+| `pnpm functions:serve` | Serve Edge Functions locally with `supabase/.env`         |
+| `pnpm test`            | Vitest in every package                                   |
+| `pnpm test:functions`  | Deno tests for Edge Functions                             |
+| `pnpm test:db`         | pgTAP tests against the local database                    |
+| `pnpm e2e`             | Playwright end-to-end tests (stack and functions running) |
+| `pnpm gen:score-tests` | Regenerate the SQL score test from the shared cases       |
+| `pnpm lint`            | ESLint                                                    |
+| `pnpm format`          | Prettier                                                  |
+| `pnpm typecheck`       | `tsc --noEmit` in every package                           |
+| `pnpm db:types`        | Regenerate `packages/db-types` after a migration          |
+| `supabase db reset`    | Rebuild the local database from migrations and seed data  |
 
 ## How sync runs
 

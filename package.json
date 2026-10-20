@@ -17,7 +17,8 @@
     "test:db": "supabase test db",
     "db:types": "supabase gen types typescript --local > packages/db-types/src/database.ts",
     "functions:serve": "supabase functions serve --env-file supabase/.env",
-    "gen:score-tests": "node scripts/gen-score-tests.mjs"
+    "gen:score-tests": "node scripts/gen-score-tests.mjs",
+    "e2e": "pnpm --filter @mjolnir/web e2e"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

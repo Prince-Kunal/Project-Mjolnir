@@ -32,7 +32,6 @@ export function MorePage() {
         error={result?.status === 'error' ? connectErrorMessage(result.reason) : null}
       />
       <CalendarPicker />
-      <ColoursSettings />
       <Card
         title="Habits"
         description="Daily checks worth 1 to 3 points. They count toward the day's score."
@@ -42,6 +41,7 @@ export function MorePage() {
       <Card title="Areas" description="Top-level categories, such as Rich, Muscular, Intelligent.">
         <AreasEditor />
       </Card>
+      <ColoursSettings />
       <DaySettingsCard />
       <AccountCard />
     </div>

@@ -49,3 +49,15 @@ Choices the plan does not cover, one line each, with the reason. Newest at the b
 - Working-location events are not tasks and are treated as deleted.
 - The local dispatcher reaches functions at `http://kong:8000`; `seed.sql` stores that URL and a local-only worker secret in Vault.
 - M2 and M3 are judged at the event's Google `updated` time (capped at now), not the sync time, so a polled sync gives the same answer as a webhook would.
+
+## Phase 3
+
+- Score maths has one shared case table, `packages/domain/src/scoring.cases.json`; `pnpm gen:score-tests` writes the pgTAP version and CI fails if it is stale.
+- Habit items are created only for the logical today (when `day_view` opens it), never back-filled for past days. Editing a habit updates today's open item; pausing or removing it deletes today's pending one.
+- Manual tasks parse `#tags` from their title in the app (`parseTitle`) and store them as hashtag links, like calendar titles.
+- Ticks recompute the day's score in the browser with `scoreDay` for the optimistic update; the server's `day_view` stays the source of truth on refetch.
+- Realtime refetches the cached days on any change to the user's items (debounced 150 ms) instead of patching rows, because a sync can change many rows at once and the score must follow.
+- `request_sync()` runs when the app returns to the foreground, at most once a minute per device.
+- New RPCs beyond section 9.2: `delete_manual_task` (calendar deletes stay in `app-api`, Phase 6) and `update_item_local` also moves manual tasks between days and the backlog.
+- Swipe gestures and the "✓ " write-back queue on tick come with Phases 4 (reschedule) and 6 (writes to Google).
+- Playwright end-to-end tests (`pnpm e2e`) run locally against the stack with throwaway password users. They join CI in Phase 5, when the pipeline gets a full Supabase stack.
