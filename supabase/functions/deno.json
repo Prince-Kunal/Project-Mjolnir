@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "@mjolnir/domain": "../../packages/domain/src/index.ts",
+    "@std/assert": "jsr:@std/assert@^1.0.0"
+  },
+  "compilerOptions": {
+    "strict": true
+  }
+}

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Lint, typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  functions:
+    name: Edge Functions (Deno)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2.0.5
+        with:
+          deno-version: v2.x
+      - run: deno lint --config supabase/functions/deno.json supabase/functions
+      - run: deno test --allow-env --allow-net --config supabase/functions/deno.json supabase/functions
+
+  database:
+    name: Database (pgTAP, generated types)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.118.0
+      - run: supabase db start
+      - run: supabase test db
+      - name: Generated types are up to date
+        run: |
+          supabase gen types typescript --local > packages/db-types/src/database.ts
+          git diff --exit-code packages/db-types/src/database.ts
