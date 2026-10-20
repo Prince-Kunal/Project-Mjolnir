@@ -3,6 +3,7 @@ import type { BrowserContext } from '@playwright/test';
 
 interface Stack {
   api: string;
+  db: string;
   publishableKey: string;
   secretKey: string;
 }
@@ -17,7 +18,12 @@ export function localStack(): Stack {
       stdio: ['ignore', 'pipe', 'ignore'],
     });
     const s = JSON.parse(out.toString());
-    stack = { api: s.API_URL, publishableKey: s.PUBLISHABLE_KEY, secretKey: s.SECRET_KEY };
+    stack = {
+      api: s.API_URL,
+      db: s.DB_URL,
+      publishableKey: s.PUBLISHABLE_KEY,
+      secretKey: s.SECRET_KEY,
+    };
   }
   return stack;
 }
@@ -37,6 +43,13 @@ async function call(url: string, init: RequestInit) {
   const text = await res.text();
   if (!res.ok) throw new Error(`${init.method ?? 'GET'} ${url}: ${res.status} ${text}`);
   return text ? JSON.parse(text) : null;
+}
+
+/** Runs SQL against the local database as postgres, for setup only cron would do (day close). */
+export function sql(query: string): string {
+  return execSync(`psql "${localStack().db}" -tAc ${JSON.stringify(query)}`)
+    .toString()
+    .trim();
 }
 
 /** A throwaway, onboarded user with a password session (Google is not involved). */

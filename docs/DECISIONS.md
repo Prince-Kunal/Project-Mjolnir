@@ -61,3 +61,15 @@ Choices the plan does not cover, one line each, with the reason. Newest at the b
 - New RPCs beyond section 9.2: `delete_manual_task` (calendar deletes stay in `app-api`, Phase 6) and `update_item_local` also moves manual tasks between days and the backlog.
 - Swipe gestures and the "✓ " write-back queue on tick come with Phases 4 (reschedule) and 6 (writes to Google).
 - Playwright end-to-end tests (`pnpm e2e`) run locally against the stack with throwaway password users. They join CI in Phase 5, when the pipeline gets a full Supabase stack.
+
+## Phase 4
+
+- Day close and the streak walk run as SQL (`private.close_day`, `private.recompute_streak`) from a 5-minute cron job, not through the `jobs` queue and `worker` of section 10: they never touch Google, so this wakes no Edge Function, keeps each close in one transaction, and lets `mark_late_done` re-walk the streak immediately. Like scoring, the walk also lives in `packages/domain/src/streaks.ts`; both are checked against `streaks.cases.json`. The `jobs` queue arrives with the first job that needs Google or Web Push.
+- Tracking starts on the logical day the owner finished onboarding (`private.tracking_start`); earlier days are never closed, so they cannot break a streak. The close job looks back at most 30 days.
+- A habit missed at day close can also be marked done late (it is the same "forgot to tick"); habits still never enter the inbox.
+- Rescheduling a missed calendar item creates the new item first, with a Google event id chosen by us (32 hex characters, valid base32hex), then inserts the event. The sync recognises the event the moment it appears. If Google refuses, the new item is deleted and the original returns to the inbox; a queued retry with a "sync issue" badge comes with the `google_writes` queue in Phase 6.
+- The new event goes to the original calendar when it is synced and writable, else the primary calendar.
+- Free-slot suggestions are computed in the browser from `busy_blocks()` (the user's synced timed items, 0-point ones included) with `freeSlots` in the domain, instead of an `app-api` route: Google's free/busy API needs a scope we do not request, and the data is already local. Suggestions sit between 07:00 and midnight on the half hour, at most 5, within 14 days, and never overlap each other.
+- "Reschedule all to tomorrow, same times" keeps each block's local time on the logical day after today (wall-clock, so 18:00 stays 18:00 across DST).
+- Private extended properties: `pt_tags` and `pt_deadlines` keep whole values under Google's 1024-character limit (checked 2026-10-20).
+- The week table counts the week rate and "days counted" over closed days only; today shows a live score marked as not yet judged.
