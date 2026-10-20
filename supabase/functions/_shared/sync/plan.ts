@@ -163,10 +163,12 @@ export function planEvent(e: GEvent, item: ItemSnapshot | null, ctx: PlanContext
   const events: AuditEvent[] = restoring ? [{ kind: 'restored' }] : [];
 
   if (startChanged) {
+    // Judge the move by when it was made in Google, not when this sync happens to run.
+    const movedAt = e.updated && Date.parse(e.updated) <= ctx.now.getTime() ? e.updated : ctx.now;
     const move = classifyMove(
       { status, startAt: item.start_at, logicalDate: item.logical_date },
       fields.start_at,
-      ctx.now,
+      movedAt,
       ctx.timeZone,
       ctx.boundaryHour,
     );

@@ -172,6 +172,19 @@ Deno.test('M3: moving an unfinished task to another day after its start records 
   assertEquals(op.expect, { status: 'pending', finalized: false });
 });
 
+Deno.test('a move is judged by when it was made in Google, not when the sync runs', () => {
+  const moved = event({
+    start: { dateTime: '2026-10-21T18:00:00+05:30' },
+    end: { dateTime: '2026-10-21T20:00:00+05:30' },
+  });
+  // Dragged at 17:50, before the 18:00 start; the poll only sees it at 19:00.
+  const early = only(planEvent({ ...moved, updated: '2026-10-20T12:20:00Z' }, item(), ctx()).ops);
+  assertEquals(early.op, 'update');
+  // Dragged at 18:30, after the start.
+  const late = only(planEvent({ ...moved, updated: '2026-10-20T13:00:00Z' }, item(), ctx()).ops);
+  assertEquals(late.op, 'replace');
+});
+
 Deno.test('M4: a done item that is not finalized moves and stays done', () => {
   const moved = event({
     start: { dateTime: '2026-10-21T18:00:00+05:30' },

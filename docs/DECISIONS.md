@@ -48,3 +48,4 @@ Choices the plan does not cover, one line each, with the reason. Newest at the b
 - Failed syncs retry with 30 s doubling to 8 minutes; after 5 attempts the job goes to `private.dead_jobs` and the 10-minute poll picks the calendar up again later.
 - Working-location events are not tasks and are treated as deleted.
 - The local dispatcher reaches functions at `http://kong:8000`; `seed.sql` stores that URL and a local-only worker secret in Vault.
+- M2 and M3 are judged at the event's Google `updated` time (capped at now), not the sync time, so a polled sync gives the same answer as a webhook would.
