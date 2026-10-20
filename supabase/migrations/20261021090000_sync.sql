@@ -324,6 +324,7 @@ begin
     'window_to', s.window_to,
     'sync_token', case when v_kind = 'incremental' then s.sync_token end,
     'page_token', s.page_token,
+    'attempts', s.attempts,
     'profile', jsonb_build_object(
       'timezone', p.timezone,
       'day_boundary_hour', p.day_boundary_hour,
