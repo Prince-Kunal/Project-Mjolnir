@@ -1,0 +1,15 @@
+{
+  "name": "@mjolnir/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure rule logic (section 3 of the plan), shared by the web app and Edge Functions",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}
