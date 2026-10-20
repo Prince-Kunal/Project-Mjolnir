@@ -220,3 +220,60 @@ export async function accessTokenFor(deps: AccessTokenDeps): Promise<string> {
     throw err;
   }
 }
+
+// Writes (plan 8.7) -------------------------------------------------------------------------------
+
+export interface NewEvent {
+  /** Client-chosen id (base32hex), so the sync recognises the event at once. */
+  id: string;
+  summary: string;
+  start: string;
+  end: string;
+  timeZone: string;
+  /** Google colour id, or null for the calendar default. */
+  colorId: string | null;
+  privateProperties: Record<string, string>;
+}
+
+/** Google cuts private property values at 1024 characters; keep whole tags under it. */
+const MAX_PROPERTY_VALUE = 1024;
+
+export function appProperties(
+  itemId: string,
+  tags: string[],
+  deadlines: string[] = [],
+): Record<string, string> {
+  const join = (values: string[]) => {
+    let out = '';
+    for (const v of values) {
+      const next = out ? `${out},${v}` : v;
+      if (next.length > MAX_PROPERTY_VALUE) break;
+      out = next;
+    }
+    return out;
+  };
+  return { pt_app: '1', pt_item: itemId, pt_tags: join(tags), pt_deadlines: join(deadlines) };
+}
+
+export async function insertEvent(
+  accessToken: string,
+  calendarId: string,
+  e: NewEvent,
+  fetchFn: FetchFn = fetch,
+): Promise<{ id: string; etag: string }> {
+  const res = await fetchFn(`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: e.id,
+      summary: e.summary,
+      start: { dateTime: e.start, timeZone: e.timeZone },
+      end: { dateTime: e.end, timeZone: e.timeZone },
+      ...(e.colorId ? { colorId: e.colorId } : {}),
+      extendedProperties: { private: e.privateProperties },
+    }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new GoogleError(res.status, String(json.error?.status ?? 'insert_failed'));
+  return { id: json.id, etag: json.etag };
+}
