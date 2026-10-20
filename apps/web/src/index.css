@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+
+/* Dark theme by default (section 6). Band and status colours from section 11. */
+@theme {
+  --color-bg: #0b0d12;
+  --color-surface: #141821;
+  --color-surface-2: #1c2130;
+  --color-border: #262c3b;
+  --color-text: #e6e9f2;
+  --color-muted: #8b93a7;
+  --color-accent: #7c9cff;
+
+  --color-band-excellent: #3fb871;
+  --color-band-good: #2bb3a7;
+  --color-band-fair: #e0a63a;
+  --color-band-not-good: #e5534b;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
