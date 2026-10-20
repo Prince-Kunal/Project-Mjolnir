@@ -1,10 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { routes } from '../routes/router.tsx';
+import { appRoutes } from '../routes/router.tsx';
+import { AppShell } from './AppShell.tsx';
 
 function renderAt(path: string) {
-  render(<RouterProvider router={createMemoryRouter(routes, { initialEntries: [path] })} />);
+  const router = createMemoryRouter([{ element: <AppShell />, children: appRoutes }], {
+    initialEntries: [path],
+  });
+  render(<RouterProvider router={router} />);
 }
 
 describe('AppShell', () => {

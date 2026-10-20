@@ -7,4 +7,11 @@ const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string |
 export const isSupabaseConfigured = Boolean(url && publishableKey);
 
 // The web app only ever holds the publishable key (section 13).
-export const supabase = isSupabaseConfigured ? createClient<Database>(url!, publishableKey!) : null;
+export const supabase = createClient<Database>(
+  url ?? 'http://supabase.invalid',
+  publishableKey ?? 'missing',
+  { auth: { flowType: 'pkce' } },
+);
+
+export type Tables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Row'];

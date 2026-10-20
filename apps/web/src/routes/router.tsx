@@ -1,22 +1,36 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { AppShell } from '../components/AppShell.tsx';
+import { GoogleConnectedPage } from '../features/auth/GoogleConnectedPage.tsx';
+import { RequireAuth, RequireOnboarded } from '../features/auth/guards.tsx';
+import { SignInPage } from '../features/auth/SignInPage.tsx';
+import { AnalyticsPage } from '../features/analytics/AnalyticsPage.tsx';
+import { DeadlinesPage } from '../features/deadlines/DeadlinesPage.tsx';
+import { OnboardingPage } from '../features/onboarding/OnboardingPage.tsx';
+import { MorePage } from '../features/settings/MorePage.tsx';
 import { TodayPage } from '../features/today/TodayPage.tsx';
 import { WeekPage } from '../features/week/WeekPage.tsx';
-import { DeadlinesPage } from '../features/deadlines/DeadlinesPage.tsx';
-import { AnalyticsPage } from '../features/analytics/AnalyticsPage.tsx';
-import { MorePage } from '../features/settings/MorePage.tsx';
 import { NotFound } from './NotFound.tsx';
 
-export const routes = [
+export const appRoutes: RouteObject[] = [
+  { index: true, element: <TodayPage /> },
+  { path: 'week', element: <WeekPage /> },
+  { path: 'deadlines', element: <DeadlinesPage /> },
+  { path: 'analytics', element: <AnalyticsPage /> },
+  { path: 'more', element: <MorePage /> },
+  { path: '*', element: <NotFound /> },
+];
+
+export const routes: RouteObject[] = [
+  { path: '/sign-in', element: <SignInPage /> },
   {
-    element: <AppShell />,
+    element: <RequireAuth />,
     children: [
-      { index: true, element: <TodayPage /> },
-      { path: 'week', element: <WeekPage /> },
-      { path: 'deadlines', element: <DeadlinesPage /> },
-      { path: 'analytics', element: <AnalyticsPage /> },
-      { path: 'more', element: <MorePage /> },
-      { path: '*', element: <NotFound /> },
+      { path: '/google/connected', element: <GoogleConnectedPage /> },
+      { path: '/onboarding/:step?', element: <OnboardingPage /> },
+      {
+        element: <RequireOnboarded />,
+        children: [{ element: <AppShell />, children: appRoutes }],
+      },
     ],
   },
 ];
