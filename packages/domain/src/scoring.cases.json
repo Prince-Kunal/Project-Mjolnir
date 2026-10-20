@@ -1,5 +1,5 @@
 {
-  "about": "Shared by the TypeScript tests and the generated pgTAP test (supabase/tests/03_scoring_cases.test.sql). Regenerate that file with `pnpm gen:score-tests` after editing.",
+  "about": "Shared by the TypeScript tests and the generated pgTAP test (supabase/tests/03_scoring_cases.test.sql). Regenerate that file with `pnpm gen:shared-tests` after editing.",
   "bands": [
     { "rate": 0, "band": "not_good" },
     { "rate": 49.9, "band": "not_good" },

@@ -62,6 +62,32 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"daily_notes": {
+                  Row: {
+                    "body": string,"logical_date": string,"updated_at": string,"user_id": string
+                  }
+                  Insert: {
+                    "body"?: string,"logical_date": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "body"?: string,"logical_date"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"day_summaries": {
+                  Row: {
+                    "band": string,"counts": boolean | null,"done_points": number,"finalized_at": string,"logical_date": string,"missed_points": number,"planned_points": number,"rest_pass_used": boolean | null,"streak_after": number | null,"success_rate": number,"user_id": string
+                  }
+                  Insert: {
+                    "band": string,"counts"?: boolean | null,"done_points": number,"finalized_at"?: string,"logical_date": string,"missed_points": number,"planned_points": number,"rest_pass_used"?: boolean | null,"streak_after"?: number | null,"success_rate": number,"user_id": string
+                  }
+                  Update: {
+                    "band"?: string,"counts"?: boolean | null,"done_points"?: number,"finalized_at"?: string,"logical_date"?: string,"missed_points"?: number,"planned_points"?: number,"rest_pass_used"?: boolean | null,"streak_after"?: number | null,"success_rate"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"habits": {
                   Row: {
                     "active": boolean,"archived_at": string | null,"area_id": string | null,"created_at": string,"id": string,"points": number,"title": string,"user_id": string,"weekdays": number
@@ -181,6 +207,19 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"streak_state": {
+                  Row: {
+                    "best": number,"computed_through": string | null,"current": number,"user_id": string
+                  }
+                  Insert: {
+                    "best"?: number,"computed_through"?: string | null,"current"?: number,"user_id": string
+                  }
+                  Update: {
+                    "best"?: number,"computed_through"?: string | null,"current"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"tags": {
                   Row: {
                     "area_id": string | null,"created_at": string,"id": string,"name": string,"user_id": string
@@ -222,6 +261,9 @@ isOneToOne: false
             "backlog":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"busy_blocks":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
 "complete_item":
 { Args: { "p_actual_minutes"?: number,"p_id": string }; Returns: Json
                            },
@@ -231,7 +273,16 @@ isOneToOne: false
 "day_view":
 { Args: { "p_date"?: string }; Returns: Json
                            },
+"days_range":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
 "delete_manual_task":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"dismiss_all_missed":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"dismiss_missed":
 { Args: { "p_id": string }; Returns: undefined
                            },
 "google_connection":
@@ -240,11 +291,26 @@ isOneToOne: false
 "is_valid_timezone":
 { Args: { "tz": string }; Returns: boolean
                            },
+"mark_late_done":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"missed_inbox":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"months_summary":
+{ Args: { "p_year": number }; Returns: Json
+                           },
 "request_sync":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"reschedule_manual":
+{ Args: { "p_date": string,"p_id": string }; Returns: Json
+                           },
 "score_band":
 { Args: { "p_rate": number }; Returns: string
+                           },
+"streak":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "svc_apply_sync_ops":
 { Args: { "p_calendar_id": string,"p_ops": Json,"p_seen"?: (string)[] }; Returns: Json
@@ -279,6 +345,15 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"svc_reschedule_abort":
+{ Args: { "p_item_id": string }; Returns: undefined
+                           },
+"svc_reschedule_commit":
+{ Args: { "p_etag": string,"p_item_id": string }; Returns: undefined
+                           },
+"svc_reschedule_prepare":
+{ Args: { "p_end": string,"p_id": string,"p_start": string,"p_user_id": string }; Returns: Json
+                           },
 "svc_save_google_account":
 { Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_email"?: string,"p_google_sub": string,"p_refresh_token_enc"?: string,"p_scopes": (string)[],"p_user_id": string }; Returns: undefined
                            },

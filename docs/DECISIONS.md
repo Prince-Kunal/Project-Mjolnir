@@ -52,7 +52,7 @@ Choices the plan does not cover, one line each, with the reason. Newest at the b
 
 ## Phase 3
 
-- Score maths has one shared case table, `packages/domain/src/scoring.cases.json`; `pnpm gen:score-tests` writes the pgTAP version and CI fails if it is stale.
+- Score maths has one shared case table, `packages/domain/src/scoring.cases.json`; `pnpm gen:shared-tests` writes the pgTAP version and CI fails if it is stale.
 - Habit items are created only for the logical today (when `day_view` opens it), never back-filled for past days. Editing a habit updates today's open item; pausing or removing it deletes today's pending one.
 - Manual tasks parse `#tags` from their title in the app (`parseTitle`) and store them as hashtag links, like calendar titles.
 - Ticks recompute the day's score in the browser with `scoreDay` for the optimistic update; the server's `day_view` stays the source of truth on refetch.

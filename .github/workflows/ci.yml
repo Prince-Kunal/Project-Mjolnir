@@ -23,10 +23,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm format:check
-      - name: Shared score cases are in sync with the SQL test
+      - name: Shared rule cases are in sync with the SQL tests
         run: |
-          pnpm gen:score-tests
-          git diff --exit-code supabase/tests/03_scoring_cases.test.sql
+          pnpm gen:shared-tests
+          git diff --exit-code supabase/tests/03_scoring_cases.test.sql supabase/tests/05_streak_cases.test.sql
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
