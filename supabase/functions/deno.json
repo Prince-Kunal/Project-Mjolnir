@@ -1,6 +1,8 @@
 {
   "imports": {
     "@mjolnir/domain": "../../packages/domain/src/index.ts",
+    "@mjolnir/db-types": "../../packages/db-types/src/database.ts",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.118.0",
     "@std/assert": "jsr:@std/assert@^1.0.0"
   },
   "compilerOptions": {
