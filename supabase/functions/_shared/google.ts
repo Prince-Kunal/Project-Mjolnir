@@ -30,13 +30,14 @@ export interface TokenResponse {
   token_type: string;
 }
 
-export interface CalendarListEntry {
+// A type alias, not an interface, so it is assignable to the generated Json type.
+export type CalendarListEntry = {
   google_calendar_id: string;
   summary: string;
   color: string | null;
   is_primary: boolean;
   access_role: string;
-}
+};
 
 export class GoogleError extends Error {
   constructor(

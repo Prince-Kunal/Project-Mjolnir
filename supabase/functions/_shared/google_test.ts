@@ -97,7 +97,13 @@ Deno.test('listCalendars follows pages and maps fields', async () => {
       is_primary: true,
       access_role: 'owner',
     },
-    { google_calendar_id: 'work', summary: 'Job', color: null, is_primary: false, access_role: 'reader' },
+    {
+      google_calendar_id: 'work',
+      summary: 'Job',
+      color: null,
+      is_primary: false,
+      access_role: 'reader',
+    },
   ]);
 });
 

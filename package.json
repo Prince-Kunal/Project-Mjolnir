@@ -15,7 +15,8 @@
     "test": "pnpm -r test",
     "test:functions": "deno test --allow-env --allow-net --config supabase/functions/deno.json supabase/functions",
     "test:db": "supabase test db",
-    "db:types": "supabase gen types typescript --local > packages/db-types/src/database.ts"
+    "db:types": "supabase gen types typescript --local > packages/db-types/src/database.ts",
+    "functions:serve": "supabase functions serve --env-file supabase/.env"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

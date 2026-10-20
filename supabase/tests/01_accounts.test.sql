@@ -149,19 +149,24 @@ select is_empty(
 -- Google account storage ---------------------------------------------------------------------
 
 select public.svc_save_google_account(
-  '11111111-1111-1111-1111-111111111111', 'sub-a', 'a@gmail.com', array['calendar.events'],
-  encode('refresh-ciphertext', 'base64'), encode('access-ciphertext', 'base64'), now() + interval '1 hour'
+  p_user_id => '11111111-1111-1111-1111-111111111111', p_google_sub => 'sub-a',
+  p_email => 'a@gmail.com', p_scopes => array['calendar.events'],
+  p_refresh_token_enc => encode('refresh-ciphertext', 'base64'),
+  p_access_token_enc => encode('access-ciphertext', 'base64'),
+  p_access_expires_at => now() + interval '1 hour'
 );
 select public.svc_save_google_account(
-  '11111111-1111-1111-1111-111111111111', 'sub-a', 'a@gmail.com', array['calendar.events'],
-  null, encode('access-2', 'base64'), now() + interval '1 hour'
+  p_user_id => '11111111-1111-1111-1111-111111111111', p_google_sub => 'sub-a',
+  p_email => 'a@gmail.com', p_scopes => array['calendar.events'],
+  p_access_token_enc => encode('access-2', 'base64'),
+  p_access_expires_at => now() + interval '1 hour'
 );
 select is(
   (select convert_from(decode(refresh_token_enc, 'base64'), 'UTF8') from public.svc_get_google_account('11111111-1111-1111-1111-111111111111')),
   'refresh-ciphertext', 'a reconnect without a refresh token keeps the stored one'
 );
 select throws_ok(
-  $$ select public.svc_save_google_account('22222222-2222-2222-2222-222222222222', 'sub-a', 'a@gmail.com', '{}', null, null, null) $$,
+  $$ select public.svc_save_google_account(p_user_id => '22222222-2222-2222-2222-222222222222', p_google_sub => 'sub-a', p_scopes => '{}', p_access_token_enc => null, p_access_expires_at => null) $$,
   '23505', null, 'one Google account cannot be linked to two app users'
 );
 
@@ -177,7 +182,9 @@ select is(
 
 reset role;
 select public.svc_save_google_account(
-  '11111111-1111-1111-1111-111111111111', 'sub-other', 'other@gmail.com', '{}', null, null, null
+  p_user_id => '11111111-1111-1111-1111-111111111111', p_google_sub => 'sub-other',
+  p_email => 'other@gmail.com', p_scopes => '{}', p_access_token_enc => null,
+  p_access_expires_at => null
 );
 select is(
   (select count(*)::int from public.calendars where user_id = '11111111-1111-1111-1111-111111111111'),

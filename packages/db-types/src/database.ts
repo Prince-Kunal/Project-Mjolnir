@@ -101,7 +101,7 @@ export type Database = {
             }[]
                            },
 "svc_save_google_account":
-{ Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_email": string,"p_google_sub": string,"p_refresh_token_enc": string,"p_scopes": (string)[],"p_user_id": string }; Returns: undefined
+{ Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_email"?: string,"p_google_sub": string,"p_refresh_token_enc"?: string,"p_scopes": (string)[],"p_user_id": string }; Returns: undefined
                            },
 "svc_update_google_tokens":
 { Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_status": string,"p_user_id": string }; Returns: undefined

@@ -228,11 +228,11 @@ $$;
 create function public.svc_save_google_account(
   p_user_id uuid,
   p_google_sub text,
-  p_email text,
   p_scopes text[],
-  p_refresh_token_enc text,
   p_access_token_enc text,
-  p_access_expires_at timestamptz
+  p_access_expires_at timestamptz,
+  p_email text default null,
+  p_refresh_token_enc text default null
 )
 returns void
 language plpgsql
@@ -328,7 +328,7 @@ begin
   foreach fn in array array[
     'public.svc_create_oauth_state(uuid, text, text, int)',
     'public.svc_consume_oauth_state(text)',
-    'public.svc_save_google_account(uuid, text, text, text[], text, text, timestamptz)',
+    'public.svc_save_google_account(uuid, text, text[], text, timestamptz, text, text)',
     'public.svc_get_google_account(uuid)',
     'public.svc_update_google_tokens(uuid, text, timestamptz, text)',
     'public.svc_upsert_calendars(uuid, jsonb)'
