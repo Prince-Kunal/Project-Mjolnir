@@ -20,13 +20,28 @@ export function startAuth() {
     useAuth.setState({ ready: true });
     return;
   }
-  supabase.auth.getSession().then(({ data }) => {
-    useAuth.setState({ session: data.session, ready: true });
+  supabase.auth.getSession().then(async ({ data }) => {
+    const session = data.session ? await validSession(data.session) : null;
+    useAuth.setState({ session, ready: true });
   });
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') queryClient.clear();
     useAuth.setState({ session, ready: true });
   });
+}
+
+/**
+ * A stored session can outlive its account (deleted, or a rebuilt local database) while its JWT
+ * still verifies. Ask the auth server once at start; if it rejects the user, sign out locally.
+ * Network errors keep the session, so the app still opens offline.
+ */
+async function validSession(session: Session): Promise<Session | null> {
+  const { error } = await supabase.auth.getUser();
+  if (error && (error.status === 401 || error.status === 403 || error.status === 404)) {
+    await supabase.auth.signOut({ scope: 'local' });
+    return null;
+  }
+  return session;
 }
 
 /** Sign-in asks Google for basic profile scopes only; Calendar is a separate step (plan 8.1). */

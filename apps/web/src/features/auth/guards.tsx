@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { Loading } from '../../components/ui.tsx';
-import { useAuth } from '../../lib/auth.ts';
+import { Button, Loading } from '../../components/ui.tsx';
+import { signOut, useAuth } from '../../lib/auth.ts';
 import { useProfile } from '../../lib/queries.ts';
 
 function FullPageLoading() {
@@ -25,8 +25,13 @@ export function RequireOnboarded() {
   if (isLoading) return <FullPageLoading />;
   if (error || !profile) {
     return (
-      <div className="flex min-h-full items-center justify-center text-sm text-muted">
-        Could not load your profile. Refresh to try again.
+      <div className="flex min-h-full flex-col items-center justify-center gap-4 px-4 text-center">
+        <p className="text-sm text-muted">
+          Could not load your profile. Refresh, or sign in again.
+        </p>
+        <Button variant="secondary" onClick={() => void signOut()}>
+          Sign out
+        </Button>
       </div>
     );
   }
