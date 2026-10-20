@@ -127,3 +127,98 @@ export function useSaveColorRules() {
     onSuccess: (rules) => qc.setQueryData(keys.colorRules, rules),
   });
 }
+
+export type Area = Tables<'areas'>;
+export type Habit = Tables<'habits'>;
+
+export function useAreas() {
+  return useQuery({
+    queryKey: ['areas'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('areas')
+          .select('*')
+          .is('archived_at', null)
+          .order('sort_order')
+          .order('created_at'),
+      ),
+  });
+}
+
+export function useSaveArea() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { id?: string; name: string; sort_order?: number }) =>
+      a.id
+        ? unwrap(
+            await supabase.from('areas').update({ name: a.name }).eq('id', a.id).select().single(),
+          )
+        : unwrap(
+            await supabase
+              .from('areas')
+              .insert({ user_id: userId(), name: a.name, sort_order: a.sort_order ?? 0 })
+              .select()
+              .single(),
+          ),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['areas'] }),
+  });
+}
+
+export function useArchiveArea() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(
+        await supabase.from('areas').update({ archived_at: new Date().toISOString() }).eq('id', id),
+      ),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['areas'] }),
+  });
+}
+
+export function useHabits() {
+  return useQuery({
+    queryKey: ['habits'],
+    queryFn: async () =>
+      unwrap(await supabase.from('habits').select('*').is('archived_at', null).order('created_at')),
+  });
+}
+
+export type HabitInput = Pick<Habit, 'title' | 'points' | 'area_id' | 'weekdays' | 'active'>;
+
+export function useSaveHabit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...h }: Partial<HabitInput> & { id?: string }) =>
+      id
+        ? unwrap(await supabase.from('habits').update(h).eq('id', id).select().single())
+        : unwrap(
+            await supabase
+              .from('habits')
+              .insert({ user_id: userId(), title: h.title!, points: h.points!, ...h })
+              .select()
+              .single(),
+          ),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['habits'] });
+      void qc.invalidateQueries({ queryKey: ['day'] });
+    },
+  });
+}
+
+export function useArchiveHabit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(
+        await supabase
+          .from('habits')
+          .update({ archived_at: new Date().toISOString() })
+          .eq('id', id),
+      ),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['habits'] });
+      void qc.invalidateQueries({ queryKey: ['day'] });
+    },
+  });
+}

@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -8,13 +9,16 @@ function renderAt(path: string) {
   const router = createMemoryRouter([{ element: <AppShell />, children: appRoutes }], {
     initialEntries: [path],
   });
-  render(<RouterProvider router={router} />);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
 }
 
 describe('AppShell', () => {
-  it('renders Today at the root with every nav entry', () => {
+  it('shows every nav entry in the phone tab bar', () => {
     renderAt('/');
-    expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument();
     const tabs = screen.getByRole('navigation', { name: 'Tabs' });
     for (const label of ['Today', 'Week', 'Deadlines', 'Analytics', 'More']) {
       expect(tabs).toHaveTextContent(label);

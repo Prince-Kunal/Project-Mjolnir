@@ -1,13 +1,15 @@
 import { type ColorRule, normalizePrimaries } from '@mjolnir/domain';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Loading, Notice } from '../../components/ui.tsx';
 import { connectErrorMessage, type ConnectResult } from '../../lib/googleConnect.ts';
 import {
+  useAreas,
   useCalendars,
   useColorRules,
   useGoogleConnection,
   useProfile,
+  useSaveArea,
   useSaveColorRules,
   useUpdateProfile,
 } from '../../lib/queries.ts';
@@ -16,10 +18,11 @@ import { ColorMap } from '../settings/ColorMap.tsx';
 import { browserTimezone } from '../../lib/timezone.ts';
 import { DaySettings, type DayValues } from '../settings/DaySettings.tsx';
 import { GoogleConnectCard } from '../settings/GoogleConnectCard.tsx';
+import { AreasEditor } from '../settings/AreasEditor.tsx';
+import { HabitsEditor } from '../settings/HabitsEditor.tsx';
 
 // Plan section 11, onboarding. Step 1 (sign in) is done by the time this page shows.
-// Areas and habits join as the last step in Phase 3.
-const STEPS = ['connect', 'calendars', 'colours', 'day'] as const;
+const STEPS = ['connect', 'calendars', 'colours', 'day', 'areas'] as const;
 type Step = (typeof STEPS)[number];
 const TOTAL = STEPS.length + 1;
 
@@ -47,6 +50,7 @@ export function OnboardingPage() {
       {step === 'calendars' && <CalendarsStep />}
       {step === 'colours' && <ColoursStep />}
       {step === 'day' && <DayStep />}
+      {step === 'areas' && <AreasStep />}
     </main>
   );
 }
@@ -176,9 +180,9 @@ function DayStep() {
     ...draft,
   };
 
-  async function finish() {
-    await update.mutateAsync({ ...values, onboarded_at: new Date().toISOString() });
-    navigate('/', { replace: true });
+  async function next() {
+    await update.mutateAsync(values);
+    navigate('/onboarding/areas');
   }
 
   return (
@@ -197,6 +201,56 @@ function DayStep() {
       )}
       <div className="mt-6 flex justify-between">
         <Button variant="ghost" onClick={() => navigate('/onboarding/colours')}>
+          Back
+        </Button>
+        <Button onClick={next} disabled={update.isPending}>
+          Continue
+        </Button>
+      </div>
+    </>
+  );
+}
+
+const SUGGESTED_AREAS = ['Rich', 'Muscular', 'Intelligent'];
+
+function AreasStep() {
+  const navigate = useNavigate();
+  const { data: areas, isLoading } = useAreas();
+  const saveArea = useSaveArea();
+  const update = useUpdateProfile();
+  // A ref, not state: StrictMode runs effects twice and must not create the set twice.
+  const seeded = useRef(false);
+
+  // Start from the suggested set once; the owner edits or removes them below.
+  useEffect(() => {
+    if (isLoading || seeded.current || !areas) return;
+    seeded.current = true;
+    if (areas.length === 0) {
+      SUGGESTED_AREAS.forEach((name, i) => saveArea.mutate({ name, sort_order: i }));
+    }
+  }, [isLoading, areas, saveArea]);
+
+  async function finish() {
+    await update.mutateAsync({ onboarded_at: new Date().toISOString() });
+    navigate('/', { replace: true });
+  }
+
+  return (
+    <>
+      <StepHeader title="Areas and habits">
+        Areas group your work. Habits are daily checks that count toward the score. Both can change
+        later in Settings.
+      </StepHeader>
+      <div className="flex flex-col gap-4">
+        <Card title="Areas">
+          <AreasEditor />
+        </Card>
+        <Card title="Habits">
+          <HabitsEditor />
+        </Card>
+      </div>
+      <div className="mt-6 flex justify-between">
+        <Button variant="ghost" onClick={() => navigate('/onboarding/day')}>
           Back
         </Button>
         <Button onClick={finish} disabled={update.isPending}>

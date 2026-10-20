@@ -1,10 +1,14 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useForegroundRefresh, useItemsRealtime } from '../lib/day.ts';
 import { NAV } from '../lib/nav.ts';
+import { Toaster } from './Toast.tsx';
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'text-text' : 'text-muted hover:text-text';
 
 export function AppShell() {
+  useItemsRealtime();
+  useForegroundRefresh();
   return (
     <div className="flex h-full">
       <aside className="hidden w-56 shrink-0 flex-col gap-1 border-r border-border bg-surface p-4 md:flex">
@@ -44,6 +48,7 @@ export function AppShell() {
           </NavLink>
         ))}
       </nav>
+      <Toaster />
     </div>
   );
 }

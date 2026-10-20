@@ -12,10 +12,12 @@ import {
   useSaveColorRules,
   useUpdateProfile,
 } from '../../lib/queries.ts';
+import { AreasEditor } from './AreasEditor.tsx';
 import { CalendarPicker } from './CalendarPicker.tsx';
 import { ColorMap } from './ColorMap.tsx';
 import { DaySettings, type DayValues } from './DaySettings.tsx';
 import { GoogleConnectCard } from './GoogleConnectCard.tsx';
+import { HabitsEditor } from './HabitsEditor.tsx';
 
 export function MorePage() {
   const location = useLocation();
@@ -31,6 +33,15 @@ export function MorePage() {
       />
       <CalendarPicker />
       <ColoursSettings />
+      <Card
+        title="Habits"
+        description="Daily checks worth 1 to 3 points. They count toward the day's score."
+      >
+        <HabitsEditor />
+      </Card>
+      <Card title="Areas" description="Top-level categories, such as Rich, Muscular, Intelligent.">
+        <AreasEditor />
+      </Card>
       <DaySettingsCard />
       <AccountCard />
     </div>
