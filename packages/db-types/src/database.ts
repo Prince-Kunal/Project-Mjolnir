@@ -49,6 +49,81 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"item_events": {
+                  Row: {
+                    "at": string,"id": number,"item_id": string | null,"kind": string,"payload": NonNullable<Json>,"user_id": string
+                  }
+                  Insert: {
+                    "at"?: string,"id"?: number,"item_id"?: string | null,"kind": string,"payload"?: NonNullable<Json>,"user_id": string
+                  }
+                  Update: {
+                    "at"?: string,"id"?: number,"item_id"?: string | null,"kind"?: string,"payload"?: NonNullable<Json>,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "item_events_item_id_fkey"
+      columns: ["item_id"]
+isOneToOne: false
+      referencedRelation: "items"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"item_tags": {
+                  Row: {
+                    "item_id": string,"source": string,"tag_id": string
+                  }
+                  Insert: {
+                    "item_id": string,"source": string,"tag_id": string
+                  }
+                  Update: {
+                    "item_id"?: string,"source"?: string,"tag_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "item_tags_item_id_fkey"
+      columns: ["item_id"]
+isOneToOne: false
+      referencedRelation: "items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "item_tags_tag_id_fkey"
+      columns: ["tag_id"]
+isOneToOne: false
+      referencedRelation: "tags"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"items": {
+                  Row: {
+                    "actual_minutes": number | null,"area_id": string | null,"calendar_id": string | null,"completed_at": string | null,"created_at": string,"end_at": string | null,"finalized": boolean,"google_active": boolean,"google_etag": string | null,"google_event_id": string | null,"google_seen_at": string | null,"google_task_id": string | null,"google_updated_at": string | null,"habit_id": string | null,"id": string,"inbox_state": string,"is_all_day": boolean,"logical_date": string | null,"marked_late": boolean,"miss_reason": string | null,"planned_minutes": number | null,"points": number,"raw_title": string | null,"recurring_event_id": string | null,"rescheduled_from_id": string | null,"source": string,"start_at": string | null,"status": string,"task_list_id": string | null,"title": string,"updated_at": string,"user_id": string
+                  }
+                  Insert: {
+                    "actual_minutes"?: number | null,"area_id"?: string | null,"calendar_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"end_at"?: string | null,"finalized"?: boolean,"google_active"?: boolean,"google_etag"?: string | null,"google_event_id"?: string | null,"google_seen_at"?: string | null,"google_task_id"?: string | null,"google_updated_at"?: string | null,"habit_id"?: string | null,"id"?: string,"inbox_state"?: string,"is_all_day"?: boolean,"logical_date"?: string | null,"marked_late"?: boolean,"miss_reason"?: string | null,"planned_minutes"?: number | null,"points": number,"raw_title"?: string | null,"recurring_event_id"?: string | null,"rescheduled_from_id"?: string | null,"source": string,"start_at"?: string | null,"status"?: string,"task_list_id"?: string | null,"title"?: string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "actual_minutes"?: number | null,"area_id"?: string | null,"calendar_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"end_at"?: string | null,"finalized"?: boolean,"google_active"?: boolean,"google_etag"?: string | null,"google_event_id"?: string | null,"google_seen_at"?: string | null,"google_task_id"?: string | null,"google_updated_at"?: string | null,"habit_id"?: string | null,"id"?: string,"inbox_state"?: string,"is_all_day"?: boolean,"logical_date"?: string | null,"marked_late"?: boolean,"miss_reason"?: string | null,"planned_minutes"?: number | null,"points"?: number,"raw_title"?: string | null,"recurring_event_id"?: string | null,"rescheduled_from_id"?: string | null,"source"?: string,"start_at"?: string | null,"status"?: string,"task_list_id"?: string | null,"title"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "items_calendar_id_fkey"
+      columns: ["calendar_id"]
+isOneToOne: false
+      referencedRelation: "calendars"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "items_rescheduled_from_id_fkey"
+      columns: ["rescheduled_from_id"]
+isOneToOne: false
+      referencedRelation: "items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "items_task_list_id_fkey"
+      columns: ["task_list_id"]
+isOneToOne: false
+      referencedRelation: "task_lists"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "avatar_url": string | null,"created_at": string,"day_boundary_hour": number,"deadline_warning_days": number,"evening_reminder_time": string,"google_item_type": string,"id": string,"include_all_day": boolean,"morning_prompt_time": string,"name": string | null,"onboarded_at": string | null,"timezone": string,"week_start": number,"writeback_checkmark": boolean
@@ -58,6 +133,19 @@ export type Database = {
                   }
                   Update: {
                     "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"id"?: string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"tags": {
+                  Row: {
+                    "area_id": string | null,"created_at": string,"id": string,"name": string,"user_id": string
+                  }
+                  Insert: {
+                    "area_id"?: string | null,"created_at"?: string,"id"?: string,"name": string,"user_id": string
+                  }
+                  Update: {
+                    "area_id"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"user_id"?: string
                   }
                   Relationships: [
                     
@@ -87,6 +175,12 @@ export type Database = {
 "is_valid_timezone":
 { Args: { "tz": string }; Returns: boolean
                            },
+"request_sync":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"svc_apply_sync_ops":
+{ Args: { "p_calendar_id": string,"p_ops": Json,"p_seen"?: (string)[] }; Returns: Json
+                           },
 "svc_consume_oauth_state":
 { Args: { "p_nonce": string }; Returns: {
               "code_verifier": string,"user_id": string
@@ -100,8 +194,43 @@ export type Database = {
               "access_expires_at": string,"access_token_enc": string,"email": string,"google_sub": string,"refresh_token_enc": string,"scopes": (string)[],"status": string
             }[]
                            },
+"svc_mark_reconnect_needed":
+{ Args: { "p_user_id": string }; Returns: undefined
+                           },
+"svc_queue_dead":
+{ Args: { "p_error": string,"p_message": Json,"p_msg_id": number,"p_queue": string }; Returns: undefined
+                           },
+"svc_queue_delete":
+{ Args: { "p_msg_id": number,"p_queue": string }; Returns: boolean
+                           },
+"svc_queue_read":
+{ Args: { "p_qty": number,"p_queue": string,"p_vt": number }; Returns: unknown[]
+                          SetofOptions: {
+        from: "*"
+        to: "message_record"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "svc_save_google_account":
 { Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_email"?: string,"p_google_sub": string,"p_refresh_token_enc"?: string,"p_scopes": (string)[],"p_user_id": string }; Returns: undefined
+                           },
+"svc_sync_checkpoint":
+{ Args: { "p_page_token": string,"p_source_id": string }; Returns: undefined
+                           },
+"svc_sync_fail":
+{ Args: { "p_error": string,"p_reset"?: boolean,"p_retry_seconds"?: number,"p_source_id": string }; Returns: number
+                           },
+"svc_sync_finish":
+{ Args: { "p_source_id": string,"p_sync_token": string }; Returns: undefined
+                           },
+"svc_sync_items":
+{ Args: { "p_calendar_id": string,"p_event_ids": (string)[] }; Returns: Json[]
+                           },
+"svc_sync_lease":
+{ Args: { "p_lease_seconds"?: number,"p_source_id": string }; Returns: Json
+                           },
+"svc_sync_unseen":
+{ Args: { "p_calendar_id": string }; Returns: Json[]
                            },
 "svc_update_google_tokens":
 { Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_status": string,"p_user_id": string }; Returns: undefined
