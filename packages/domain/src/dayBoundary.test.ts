@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dayStart, logicalDate, weekdayOf } from './dayBoundary.ts';
+import {
+  addDays,
+  dayStart,
+  logicalDate,
+  shiftLocalDays,
+  weekdayOf,
+  zonedInstant,
+} from './dayBoundary.ts';
 
 const NY = 'America/New_York';
 const IN = 'Asia/Kolkata';
@@ -86,5 +93,25 @@ describe('addDays and weekdayOf', () => {
   it('returns ISO weekdays, Monday = 1', () => {
     expect(weekdayOf('2026-10-19')).toBe(1);
     expect(weekdayOf('2026-10-25')).toBe(7);
+  });
+});
+
+describe('zonedInstant and shiftLocalDays', () => {
+  it('converts a local time to an instant', () => {
+    expect(zonedInstant('2026-10-21', 18, 30, IN).toISOString()).toBe('2026-10-21T13:00:00.000Z');
+  });
+
+  it('keeps the wall-clock time across a DST change', () => {
+    // 18:00 EDT on Sat 31 Oct, one day later is 18:00 EST on Sun 1 Nov.
+    expect(shiftLocalDays('2026-10-31T22:00:00Z', 1, NY).toISOString()).toBe(
+      '2026-11-01T23:00:00.000Z',
+    );
+  });
+
+  it('moves a past-midnight block by calendar days', () => {
+    // 01:30 on the 21st (logical day the 20th) moved one day is 01:30 on the 22nd.
+    expect(shiftLocalDays('2026-10-21T01:30:00+05:30', 1, IN).toISOString()).toBe(
+      '2026-10-21T20:00:00.000Z',
+    );
   });
 });

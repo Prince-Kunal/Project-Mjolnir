@@ -83,10 +83,15 @@ export function logicalDate(
   return w.hour < boundaryHour ? addDays(date, -1) : date;
 }
 
-/** The instant a logical day begins: `boundaryHour`:00 local time on that date. */
-export function dayStart(date: LogicalDate, timeZone: string, boundaryHour: number): Date {
+/** The instant `hour`:`minute` local time on `date` in `timeZone`, following DST. */
+export function zonedInstant(
+  date: LogicalDate,
+  hour: number,
+  minute: number,
+  timeZone: string,
+): Date {
   const [y, m, d] = parseDate(date);
-  const target = Date.UTC(y, m - 1, d, boundaryHour);
+  const target = Date.UTC(y, m - 1, d, hour, minute);
   const offsetAt = (t: number) => {
     const w = wallClock(new Date(t), timeZone);
     return Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute) - t;
@@ -101,4 +106,18 @@ export function dayStart(date: LogicalDate, timeZone: string, boundaryHour: numb
   const exact = [first, second].filter(matches);
   // Repeated hour: the earlier instant. Skipped hour: the first instant after the gap.
   return new Date(exact.length ? Math.min(...exact) : Math.max(first, second));
+}
+
+/** The instant a logical day begins: `boundaryHour`:00 local time on that date. */
+export function dayStart(date: LogicalDate, timeZone: string, boundaryHour: number): Date {
+  return zonedInstant(date, boundaryHour, 0, timeZone);
+}
+
+/**
+ * The same local time, `days` calendar days later: "reschedule to tomorrow, same time".
+ * Wall-clock based, so 18:00 stays 18:00 across a DST change.
+ */
+export function shiftLocalDays(instant: Date | string, days: number, timeZone: string): Date {
+  const w = wallClock(toDate(instant), timeZone);
+  return zonedInstant(addDays(isoDate(w.year, w.month, w.day), days), w.hour, w.minute, timeZone);
 }
