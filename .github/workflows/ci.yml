@@ -56,3 +56,35 @@ jobs:
         run: |
           supabase gen types typescript --local > packages/db-types/src/database.ts
           git diff --exit-code packages/db-types/src/database.ts
+
+  e2e:
+    name: End-to-end (Playwright, local stack)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.118.0
+      - name: Placeholder secrets for config.toml
+        run: |
+          cat > supabase/.env <<ENV
+          GOOGLE_CLIENT_ID=ci.apps.googleusercontent.com
+          GOOGLE_CLIENT_SECRET=ci
+          ENV
+      - name: Start Supabase (database, auth, REST, realtime)
+        run: supabase start -x studio,imgproxy,storage-api,logflare,vector,supavisor,edge-runtime,mailpit,postgres-meta
+      - name: Point the web app at it
+        run: |
+          supabase status -o env --override-name api.url=VITE_SUPABASE_URL \
+            --override-name auth.publishable_key=VITE_SUPABASE_PUBLISHABLE_KEY \
+            | grep -E '^VITE_' > apps/web/.env.local
+      - run: pnpm --filter @mjolnir/web exec playwright install --with-deps chromium
+      - run: pnpm e2e
+        env:
+          CI: '1'

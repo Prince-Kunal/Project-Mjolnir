@@ -1,0 +1,39 @@
+name: Weekly backup
+
+# The free plan has no backups (section 10). Roles, schema and data are dumped, encrypted to the
+# owner's age public key, and kept as a private workflow artifact for 90 days. Only the holder of
+# the matching private key can read them.
+on:
+  schedule:
+    - cron: '23 21 * * 6' # Sunday 02:53 in India
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.118.0
+      - name: Install age
+        run: sudo apt-get update -q && sudo apt-get install -y -q age
+      - name: Dump and encrypt
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          umask 077
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f data.sql --use-copy --data-only
+          name="mjolnir-$(date -u +%Y-%m-%d)"
+          tar czf - roles.sql schema.sql data.sql | age -r "$AGE_RECIPIENT" > "$name.tar.gz.age"
+          rm roles.sql schema.sql data.sql
+          echo "NAME=$name" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.NAME }}
+          path: ${{ env.NAME }}.tar.gz.age
+          retention-days: 90
+          if-no-files-found: error
