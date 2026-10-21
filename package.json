@@ -18,7 +18,10 @@
     "db:types": "supabase gen types typescript --local > packages/db-types/src/database.ts",
     "functions:serve": "supabase functions serve --env-file supabase/.env",
     "e2e": "pnpm --filter @mjolnir/web e2e",
-    "gen:shared-tests": "node scripts/gen-shared-tests.mjs"
+    "gen:shared-tests": "node scripts/gen-shared-tests.mjs",
+    "deploy:web": "pnpm --filter @mjolnir/web build && pnpm dlx wrangler@4 pages deploy apps/web/dist --project-name project-mjolnir --branch main --commit-dirty=true",
+    "deploy:functions": "supabase functions deploy --project-ref vkgzaxsxobzrummlrmrb",
+    "deploy:db": "supabase db push --linked"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

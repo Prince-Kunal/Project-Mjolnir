@@ -16,3 +16,4 @@ supabase/.temp
 supabase/functions/.env
 test-results/
 playwright-report/
+!apps/web/.env.production
