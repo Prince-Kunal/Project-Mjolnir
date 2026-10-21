@@ -439,3 +439,8 @@ import_map = "./functions/deno.json"
 [functions.worker]
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+# Google push notifications carry a channel token, not a Supabase JWT (plan 8.6).
+[functions.google-webhook]
+verify_jwt = false
+import_map = "./functions/deno.json"

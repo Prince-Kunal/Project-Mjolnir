@@ -1,10 +1,24 @@
 import type { ColorRule } from '@mjolnir/domain';
-import { decryptToken, encryptToken, importTokenKey } from '../_shared/crypto.ts';
+import type { Json } from '@mjolnir/db-types';
+import {
+  type ChannelDeps,
+  runStop,
+  runWatch,
+  type StopJob,
+  type WatchJob,
+} from '../_shared/channels.ts';
+import {
+  decryptToken,
+  encryptToken,
+  importTokenKey,
+  randomToken,
+  sha256Hex,
+} from '../_shared/crypto.ts';
 import { adminClient, googleConfig, requireEnv } from '../_shared/env.ts';
 import { accessTokenFor } from '../_shared/google.ts';
 import { type Lease, type SyncStore, syncSource } from '../_shared/sync/run.ts';
 import type { ItemSnapshot } from '../_shared/sync/types.ts';
-import { createWorker, type QueueMessage } from './handler.ts';
+import { BadMessage, createWorker, type QueueMessage } from './handler.ts';
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
@@ -118,6 +132,40 @@ function accessToken(userId: string) {
   });
 }
 
+const channels: ChannelDeps = {
+  accessToken,
+  newId: () => crypto.randomUUID(),
+  newSecret: () => randomToken(32),
+  hash: sha256Hex,
+  async context(calendarId) {
+    const data = check(
+      'svc_watch_context',
+      await admin.rpc('svc_watch_context', { p_calendar_id: calendarId }),
+    );
+    return (data as unknown as Awaited<ReturnType<ChannelDeps['context']>>) ?? null;
+  },
+  async channel(id) {
+    const data = check('svc_channel_get', await admin.rpc('svc_channel_get', { p_id: id }));
+    return (data as unknown as Awaited<ReturnType<ChannelDeps['channel']>>) ?? null;
+  },
+  async save(c) {
+    check(
+      'svc_channel_save',
+      await admin.rpc('svc_channel_save', {
+        p_id: c.id,
+        p_calendar_id: c.calendar_id,
+        p_user_id: c.user_id,
+        p_resource_id: c.resource_id,
+        p_token_hash: c.token_hash,
+        p_expires_at: c.expires_at,
+      }),
+    );
+  },
+  async stopped(id) {
+    check('svc_channel_stopped', await admin.rpc('svc_channel_stopped', { p_id: id }));
+  },
+};
+
 const handler = createWorker(
   {
     secret: requireEnv('WORKER_SECRET'),
@@ -140,12 +188,22 @@ const handler = createWorker(
         await admin.rpc('svc_queue_dead', {
           p_queue: queue,
           p_msg_id: msg.msg_id,
-          p_message: msg.message,
+          p_message: msg.message as Json,
           p_error: error,
         }),
       );
     },
-    syncSource: (sourceId, deadline) => syncSource(sourceId, { store, accessToken, deadline }),
+    handlers: {
+      sync_jobs: (m, deadline) => {
+        if (typeof m.source_id !== 'string') throw new BadMessage('no source_id');
+        return syncSource(m.source_id, { store, accessToken, deadline });
+      },
+      jobs: (m) => {
+        if (m.kind === 'watch') return runWatch(m as unknown as WatchJob, channels);
+        if (m.kind === 'stop_channel') return runStop(m as unknown as StopJob, channels);
+        throw new BadMessage(`unknown kind ${String(m.kind)}`);
+      },
+    },
   },
   (p) => (typeof EdgeRuntime !== 'undefined' ? EdgeRuntime.waitUntil(p) : void p),
 );

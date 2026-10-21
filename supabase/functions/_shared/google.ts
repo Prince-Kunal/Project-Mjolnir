@@ -277,3 +277,56 @@ export async function insertEvent(
   if (!res.ok) throw new GoogleError(res.status, String(json.error?.status ?? 'insert_failed'));
   return { id: json.id, etag: json.etag };
 }
+
+// Push channels (plan 8.6) ------------------------------------------------------------------------
+
+export interface WatchRequest {
+  /** Our channel id (a UUID). */
+  id: string;
+  /** Secret Google echoes in X-Goog-Channel-Token; only its hash is stored. */
+  token: string;
+  address: string;
+  /** Requested expiry, epoch ms; Google may shorten it. */
+  expiration: number;
+}
+
+export async function watchEvents(
+  accessToken: string,
+  calendarId: string,
+  w: WatchRequest,
+  fetchFn: FetchFn = fetch,
+): Promise<{ resourceId: string; expiration: number }> {
+  const res = await fetchFn(
+    `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/watch`,
+    {
+      method: 'POST',
+      headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        id: w.id,
+        type: 'web_hook',
+        address: w.address,
+        token: w.token,
+        expiration: w.expiration,
+      }),
+    },
+  );
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new GoogleError(res.status, String(json.error?.status ?? 'watch_failed'));
+  return { resourceId: json.resourceId, expiration: Number(json.expiration) };
+}
+
+/** Stops a channel. One Google no longer knows about counts as stopped. */
+export async function stopChannel(
+  accessToken: string,
+  id: string,
+  resourceId: string,
+  fetchFn: FetchFn = fetch,
+): Promise<void> {
+  const res = await fetchFn(`${CALENDAR_API}/channels/stop`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ id, resourceId }),
+  });
+  await res.body?.cancel();
+  if (!res.ok && res.status !== 404) throw new GoogleError(res.status, 'stop_failed');
+}

@@ -2,20 +2,26 @@
 // once, and works in the background until it has used 100 seconds of the 150-second limit.
 import { timingSafeEqual } from '../_shared/crypto.ts';
 import { json } from '../_shared/http.ts';
-import type { SyncOutcome } from '../_shared/sync/run.ts';
 
 export interface QueueMessage {
   msg_id: number;
   read_ct: number;
-  message: { source_id?: string };
+  message: Record<string, unknown>;
 }
+
+/** Thrown by a handler for a message it can never process; it goes straight to dead jobs. */
+export class BadMessage extends Error {}
+
+/** Handles one message; returns a short outcome for the log. Throwing leaves it for a retry. */
+export type JobHandler = (message: Record<string, unknown>, deadline: number) => Promise<string>;
 
 export interface WorkerDeps {
   secret: string;
   read(queue: string, visibilitySeconds: number, qty: number): Promise<QueueMessage[]>;
   remove(queue: string, msgId: number): Promise<void>;
   dead(queue: string, msg: QueueMessage, error: string): Promise<void>;
-  syncSource(sourceId: string, deadline: number): Promise<SyncOutcome>;
+  /** One handler per queue, drained in this order. */
+  handlers: Record<string, JobHandler>;
   now?: () => number;
   log?: (line: string) => void;
 }
@@ -35,25 +41,33 @@ export async function drain(deps: WorkerDeps): Promise<{ handled: number }> {
   let handled = 0;
 
   while (now() < stopAt) {
-    const batch = await deps.read('sync_jobs', VISIBILITY_SECONDS, BATCH);
-    if (batch.length === 0) break;
-    for (const msg of batch) {
-      if (now() >= stopAt) break; // unread work reappears after the visibility timeout
-      const sourceId = msg.message.source_id;
-      if (!sourceId || msg.read_ct > MAX_ATTEMPTS) {
-        await deps.dead('sync_jobs', msg, sourceId ? 'too_many_attempts' : 'bad_message');
-        continue;
-      }
-      try {
-        const outcome = await deps.syncSource(sourceId, Math.min(stopAt, now() + JOB_BUDGET_MS));
-        await deps.remove('sync_jobs', msg.msg_id);
-        log(`sync ${sourceId} ${outcome}`);
-        handled++;
-      } catch (err) {
-        // Left in the queue: it becomes visible again after the timeout and is retried.
-        log(`sync ${sourceId} error ${err instanceof Error ? err.message : 'unknown'}`);
+    let read = 0;
+    for (const [queue, handle] of Object.entries(deps.handlers)) {
+      if (now() >= stopAt) break;
+      const batch = await deps.read(queue, VISIBILITY_SECONDS, BATCH);
+      read += batch.length;
+      for (const msg of batch) {
+        if (now() >= stopAt) break; // unread work reappears after the visibility timeout
+        if (msg.read_ct > MAX_ATTEMPTS) {
+          await deps.dead(queue, msg, 'too_many_attempts');
+          continue;
+        }
+        try {
+          const outcome = await handle(msg.message, Math.min(stopAt, now() + JOB_BUDGET_MS));
+          await deps.remove(queue, msg.msg_id);
+          log(`${queue} ${msg.msg_id} ${outcome}`);
+          handled++;
+        } catch (err) {
+          if (err instanceof BadMessage) {
+            await deps.dead(queue, msg, `bad_message: ${err.message}`);
+            continue;
+          }
+          // Left in the queue: it becomes visible again after the timeout and is retried.
+          log(`${queue} ${msg.msg_id} error ${err instanceof Error ? err.message : 'unknown'}`);
+        }
       }
     }
+    if (read === 0) break;
   }
   return { handled };
 }
