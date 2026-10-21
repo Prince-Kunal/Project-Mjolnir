@@ -300,6 +300,9 @@ isOneToOne: false
 "months_summary":
 { Args: { "p_year": number }; Returns: Json
                            },
+"ping":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "request_sync":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -314,6 +317,15 @@ isOneToOne: false
                            },
 "svc_apply_sync_ops":
 { Args: { "p_calendar_id": string,"p_ops": Json,"p_seen"?: (string)[] }; Returns: Json
+                           },
+"svc_channel_get":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"svc_channel_save":
+{ Args: { "p_calendar_id": string,"p_expires_at": string,"p_id": string,"p_resource_id": string,"p_token_hash": string,"p_user_id": string }; Returns: undefined
+                           },
+"svc_channel_stopped":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "svc_consume_oauth_state":
 { Args: { "p_nonce": string }; Returns: {
@@ -345,6 +357,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"svc_queue_sync":
+{ Args: { "p_calendar_id": string }; Returns: undefined
+                           },
 "svc_reschedule_abort":
 { Args: { "p_item_id": string }; Returns: undefined
                            },
@@ -380,6 +395,9 @@ isOneToOne: false
                            },
 "svc_upsert_calendars":
 { Args: { "p_calendars": Json,"p_user_id": string }; Returns: undefined
+                           },
+"svc_watch_context":
+{ Args: { "p_calendar_id": string }; Returns: Json
                            },
 "uncomplete_item":
 { Args: { "p_id": string }; Returns: Json
