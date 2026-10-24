@@ -1,4 +1,4 @@
-import { addDays } from '@mjolnir/domain';
+import { addDays, wallClock, weekKey } from '@mjolnir/domain';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../lib/toast.ts';
@@ -80,6 +80,9 @@ export function TodayPage() {
     return <Notice tone="error">Could not load this day. Pull to refresh or try again.</Notice>;
 
   const isToday = view.date === view.today;
+  // Evening and end-of-week prompts (section 5: Plan tomorrow, Sunday review).
+  const evening = isToday && wallClock(new Date(now), profile.timezone).hour >= 18;
+  const weekEnds = isToday && addDays(weekKey(view.today, profile.week_start), 6) === view.today;
   const go = (d: string) => setParams(d === view.today ? {} : { date: d });
   const groups = groupItems(view.items, byArea, areas);
   const open = view.items.find((i) => i.id === openId) ?? null;
@@ -209,9 +212,21 @@ export function TodayPage() {
             </button>
           ))}
         </div>
-        <Button variant="ghost" onClick={() => setBacklogOpen(true)} className="px-2 text-xs">
-          Backlog
-        </Button>
+        <div className="flex items-center gap-1">
+          {weekEnds && (
+            <Link to="/review" className="px-2 text-xs font-medium text-accent">
+              Sunday review
+            </Link>
+          )}
+          {evening && (
+            <Link to="/plan" className="px-2 text-xs font-medium text-accent">
+              Plan tomorrow
+            </Link>
+          )}
+          <Button variant="ghost" onClick={() => setBacklogOpen(true)} className="px-2 text-xs">
+            Backlog
+          </Button>
+        </div>
       </div>
 
       {groups.length === 0 ? (

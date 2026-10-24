@@ -10,6 +10,8 @@ import { DeadlinesPage } from '../features/deadlines/DeadlinesPage.tsx';
 import { UnassignedPage } from '../features/deadlines/UnassignedPage.tsx';
 import { MissedPage } from '../features/missed/MissedPage.tsx';
 import { OnboardingPage } from '../features/onboarding/OnboardingPage.tsx';
+import { PlanTomorrowPage } from '../features/plan/PlanTomorrowPage.tsx';
+import { SundayReviewPage } from '../features/plan/SundayReviewPage.tsx';
 import { MorePage } from '../features/settings/MorePage.tsx';
 import { TodayPage } from '../features/today/TodayPage.tsx';
 import { WeekPage } from '../features/week/WeekPage.tsx';
@@ -24,6 +26,8 @@ export const appRoutes: RouteObject[] = [
   { path: 'deadlines/:id', element: <DeadlineDetailPage /> },
   { path: 'unassigned', element: <UnassignedPage /> },
   { path: 'analytics', element: <AnalyticsPage /> },
+  { path: 'plan', element: <PlanTomorrowPage /> },
+  { path: 'review', element: <SundayReviewPage /> },
   { path: 'more', element: <MorePage /> },
   { path: '*', element: <NotFound /> },
 ];

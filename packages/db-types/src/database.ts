@@ -346,6 +346,19 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"weekly_notes": {
+                  Row: {
+                    "body": string,"updated_at": string,"user_id": string,"week_start": string
+                  }
+                  Insert: {
+                    "body"?: string,"updated_at"?: string,"user_id"?: string,"week_start": string
+                  }
+                  Update: {
+                    "body"?: string,"updated_at"?: string,"user_id"?: string,"week_start"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
@@ -354,6 +367,18 @@ isOneToOne: false
           Functions: {
             "accept_suggestion":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"analytics_areas":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"analytics_heatmap":
+{ Args: { "p_year": number }; Returns: Json
+                           },
+"analytics_misses":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"analytics_trend":
+{ Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
 "backlog":
 { Args: Record<PropertyKey, never>; Returns: Json

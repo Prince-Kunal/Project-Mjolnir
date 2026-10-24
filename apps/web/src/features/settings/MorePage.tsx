@@ -1,6 +1,6 @@
 import { type ColorRule, normalizePrimaries } from '@mjolnir/domain';
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button, Card, Loading, Notice } from '../../components/ui.tsx';
 import { signOut, useAuth } from '../../lib/auth.ts';
 import { connectErrorMessage, type ConnectResult } from '../../lib/googleConnect.ts';
@@ -26,7 +26,24 @@ export function MorePage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
-      <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">More</h1>
+      <nav aria-label="Planning" className="grid grid-cols-2 gap-3">
+        <Link
+          to="/plan"
+          className="rounded-xl border border-border bg-surface p-4 hover:border-muted"
+        >
+          <p className="font-semibold">Plan tomorrow</p>
+          <p className="mt-1 text-xs text-muted">Blocks, deadlines and backlog for tomorrow</p>
+        </Link>
+        <Link
+          to="/review"
+          className="rounded-xl border border-border bg-surface p-4 hover:border-muted"
+        >
+          <p className="font-semibold">Sunday review</p>
+          <p className="mt-1 text-xs text-muted">The week summarised, with a reflection</p>
+        </Link>
+      </nav>
+      <h2 className="mt-2 text-lg font-semibold">Settings</h2>
       {result?.status === 'ok' && <Notice>Google Calendar connected.</Notice>}
       <GoogleConnectCard
         returnTo={{ ok: '/more', error: '/more' }}
