@@ -27,8 +27,8 @@ test('a tick in one browser shows in another within 2 seconds', async ({ browser
 
   const laptopBox = onLaptop.getByRole('checkbox', { name: /Write tests/ });
   await expect(laptopBox).toHaveAttribute('aria-checked', 'false');
-  // Let the laptop's Realtime channel finish joining before the tick.
-  await onLaptop.waitForTimeout(1000);
+  // Wait until the laptop's live connection is up before ticking on the phone.
+  await expect(onLaptop.locator('html')).toHaveAttribute('data-realtime', 'subscribed');
 
   const started = Date.now();
   await onPhone.getByRole('checkbox', { name: 'Tick Write tests' }).click();

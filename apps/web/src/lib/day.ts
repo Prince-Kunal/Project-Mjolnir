@@ -233,6 +233,8 @@ export function useItemsRealtime() {
         refresh,
       )
       .subscribe((status) => {
+        // Visible state of the live connection (also lets end-to-end tests wait for it).
+        document.documentElement.dataset.realtime = status === 'SUBSCRIBED' ? 'subscribed' : 'down';
         // Changes made while the socket was down were never delivered: refetch on reconnect.
         if (status === 'SUBSCRIBED' && wasDown) refresh();
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED')
