@@ -6,10 +6,10 @@ import {
   ReconnectNeededError,
   stopChannel,
   watchEvents,
-} from "./google.ts";
+} from './google.ts';
 
 export interface WatchJob {
-  kind: "watch";
+  kind: 'watch';
   calendar_id: string;
   /** The expiring channel this one replaces; it is stopped once the new one exists. */
   replace: string | null;
@@ -17,7 +17,7 @@ export interface WatchJob {
 }
 
 export interface StopJob {
-  kind: "stop_channel";
+  kind: 'stop_channel';
   channel_id: string;
 }
 
@@ -61,18 +61,14 @@ export interface ChannelDeps {
 export const CHANNEL_DAYS = 7;
 const DAY = 86_400_000;
 
-export async function runWatch(
-  job: WatchJob,
-  deps: ChannelDeps,
-): Promise<string> {
+export async function runWatch(job: WatchJob, deps: ChannelDeps): Promise<string> {
   const now = deps.now?.() ?? new Date();
   const ctx = await deps.context(job.calendar_id);
-  if (!ctx || !ctx.sync_enabled) return "skipped";
+  if (!ctx || !ctx.sync_enabled) return 'skipped';
 
   // Idempotent: a queued job may run twice, and an hourly check may race a renewal.
   const healthy = ctx.channels.some(
-    (c) =>
-      c.id !== job.replace && Date.parse(c.expires_at) > now.getTime() + DAY,
+    (c) => c.id !== job.replace && Date.parse(c.expires_at) > now.getTime() + DAY,
   );
   if (!healthy) {
     const token = await deps.accessToken(ctx.user_id);
@@ -83,21 +79,13 @@ export async function runWatch(
       res = await watchEvents(
         token,
         ctx.google_calendar_id,
-        {
-          id,
-          token: secret,
-          address: job.address,
-          expiration: now.getTime() + CHANNEL_DAYS * DAY,
-        },
+        { id, token: secret, address: job.address, expiration: now.getTime() + CHANNEL_DAYS * DAY },
         deps.fetchFn,
       );
     } catch (err) {
       if (isPermanentRefusal(err)) {
-        await deps.pushUnsupported(
-          job.calendar_id,
-          `${err.status} ${err.code}`,
-        );
-        return "push_unsupported";
+        await deps.pushUnsupported(job.calendar_id, `${err.status} ${err.code}`);
+        return 'push_unsupported';
       }
       throw err;
     }
@@ -111,10 +99,8 @@ export async function runWatch(
     });
   }
   // Create the new channel first, then stop the old one; they may overlap briefly (Google's advice).
-  if (job.replace) {
-    await runStop({ kind: "stop_channel", channel_id: job.replace }, deps);
-  }
-  return healthy ? "already_watching" : "watching";
+  if (job.replace) await runStop({ kind: 'stop_channel', channel_id: job.replace }, deps);
+  return healthy ? 'already_watching' : 'watching';
 }
 
 /**
@@ -127,20 +113,12 @@ function isPermanentRefusal(err: unknown): err is GoogleError {
   return err.status === 403 && !/rate|quota/i.test(err.code);
 }
 
-export async function runStop(
-  job: StopJob,
-  deps: ChannelDeps,
-): Promise<string> {
+export async function runStop(job: StopJob, deps: ChannelDeps): Promise<string> {
   const ch = await deps.channel(job.channel_id);
-  if (!ch || ch.stopped_at) return "skipped";
+  if (!ch || ch.stopped_at) return 'skipped';
   if (ch.resource_id) {
     try {
-      await stopChannel(
-        await deps.accessToken(ch.user_id),
-        ch.id,
-        ch.resource_id,
-        deps.fetchFn,
-      );
+      await stopChannel(await deps.accessToken(ch.user_id), ch.id, ch.resource_id, deps.fetchFn);
     } catch (err) {
       // Without access Google cannot be told; the channel simply expires.
       if (
@@ -152,5 +130,5 @@ export async function runStop(
     }
   }
   await deps.stopped(ch.id);
-  return "stopped";
+  return 'stopped';
 }

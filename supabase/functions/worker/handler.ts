@@ -1,7 +1,7 @@
 // worker: drains the queues (plan 8.2). Woken by the SQL dispatcher through pg_net, answers at
 // once, and works in the background until it has used 100 seconds of the 150-second limit.
-import { timingSafeEqual } from "../_shared/crypto.ts";
-import { json } from "../_shared/http.ts";
+import { timingSafeEqual } from '../_shared/crypto.ts';
+import { json } from '../_shared/http.ts';
 
 export interface QueueMessage {
   msg_id: number;
@@ -13,18 +13,11 @@ export interface QueueMessage {
 export class BadMessage extends Error {}
 
 /** Handles one message; returns a short outcome for the log. Throwing leaves it for a retry. */
-export type JobHandler = (
-  message: Record<string, unknown>,
-  deadline: number,
-) => Promise<string>;
+export type JobHandler = (message: Record<string, unknown>, deadline: number) => Promise<string>;
 
 export interface WorkerDeps {
   secret: string;
-  read(
-    queue: string,
-    visibilitySeconds: number,
-    qty: number,
-  ): Promise<QueueMessage[]>;
+  read(queue: string, visibilitySeconds: number, qty: number): Promise<QueueMessage[]>;
   remove(queue: string, msgId: number): Promise<void>;
   dead(queue: string, msg: QueueMessage, error: string): Promise<void>;
   /** One handler per queue, drained in this order. */
@@ -56,14 +49,11 @@ export async function drain(deps: WorkerDeps): Promise<{ handled: number }> {
       for (const msg of batch) {
         if (now() >= stopAt) break; // unread work reappears after the visibility timeout
         if (msg.read_ct > MAX_ATTEMPTS) {
-          await deps.dead(queue, msg, "too_many_attempts");
+          await deps.dead(queue, msg, 'too_many_attempts');
           continue;
         }
         try {
-          const outcome = await handle(
-            msg.message,
-            Math.min(stopAt, now() + JOB_BUDGET_MS),
-          );
+          const outcome = await handle(msg.message, Math.min(stopAt, now() + JOB_BUDGET_MS));
           await deps.remove(queue, msg.msg_id);
           log(`${queue} ${msg.msg_id} ${outcome}`);
           handled++;
@@ -73,11 +63,7 @@ export async function drain(deps: WorkerDeps): Promise<{ handled: number }> {
             continue;
           }
           // Left in the queue: it becomes visible again after the timeout and is retried.
-          log(
-            `${queue} ${msg.msg_id} error ${
-              err instanceof Error ? err.message : "unknown"
-            }`,
-          );
+          log(`${queue} ${msg.msg_id} error ${err instanceof Error ? err.message : 'unknown'}`);
         }
       }
     }
@@ -86,15 +72,10 @@ export async function drain(deps: WorkerDeps): Promise<{ handled: number }> {
   return { handled };
 }
 
-export function createWorker(
-  deps: WorkerDeps,
-  waitUntil: (p: Promise<unknown>) => void,
-) {
+export function createWorker(deps: WorkerDeps, waitUntil: (p: Promise<unknown>) => void) {
   return (req: Request): Response => {
-    const given = req.headers.get("x-worker-secret") ?? "";
-    if (!timingSafeEqual(given, deps.secret)) {
-      return json({ error: "unauthorized" }, 401);
-    }
+    const given = req.headers.get('x-worker-secret') ?? '';
+    if (!timingSafeEqual(given, deps.secret)) return json({ error: 'unauthorized' }, 401);
     waitUntil(drain(deps));
     return json({ accepted: true }, 202);
   };
