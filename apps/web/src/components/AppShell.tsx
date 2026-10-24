@@ -36,7 +36,7 @@ export function AppShell() {
 
       <nav
         aria-label="Tabs"
-        className="fixed inset-x-0 bottom-0 grid grid-cols-5 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 grid grid-cols-6 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {NAV.map((n) => (
           <NavLink

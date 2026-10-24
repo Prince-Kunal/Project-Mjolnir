@@ -22,3 +22,17 @@ export const GOOGLE_EVENT_COLORS: GoogleColor[] = [
   { key: '10', name: 'Basil', hex: '#0b8043' },
   { key: '11', name: 'Tomato', hex: '#d50000' },
 ];
+
+const BY_KEY = new Map(GOOGLE_EVENT_COLORS.map((c) => [c.key as string, c.hex]));
+
+/** The colour Google Calendar shows for an event: its own, else its calendar's. */
+export function eventColor(colorKey: string | null, calendarColor: string | null): string {
+  return (colorKey && BY_KEY.get(colorKey)) || calendarColor || '#7986cb';
+}
+
+/** Dark or light text, whichever reads better on `hex`. */
+export function textOn(hex: string): string {
+  const n = parseInt(hex.slice(1, 7), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? '#0b0d12' : '#ffffff';
+}

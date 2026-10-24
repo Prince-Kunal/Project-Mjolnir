@@ -20,7 +20,7 @@ describe('AppShell', () => {
   it('shows every nav entry in the phone tab bar', () => {
     renderAt('/');
     const tabs = screen.getByRole('navigation', { name: 'Tabs' });
-    for (const label of ['Today', 'Week', 'Deadlines', 'Analytics', 'More']) {
+    for (const label of ['Today', 'Calendar', 'Week', 'Deadlines', 'Analytics', 'More']) {
       expect(tabs).toHaveTextContent(label);
     }
   });

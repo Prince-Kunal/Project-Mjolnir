@@ -1,10 +1,11 @@
 import { addDays } from '@mjolnir/domain';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../lib/toast.ts';
 import { Button, Loading, Notice } from '../../components/ui.tsx';
 import { type DayItem, useDay, useToggleItem } from '../../lib/day.ts';
 import { formatDay } from '../../lib/format.ts';
+import { useNow } from '../../lib/useNow.ts';
 import { type Area, useAreas, useProfile } from '../../lib/queries.ts';
 import { BacklogDrawer } from './BacklogDrawer.tsx';
 import { DailyNote } from './DailyNote.tsx';
@@ -16,15 +17,6 @@ import { ScoreRing } from './ScoreRing.tsx';
 import { StreakLine } from './StreakLine.tsx';
 
 const GROUP_KEY = 'mjolnir.today.byArea';
-
-function useNow(intervalMs = 60_000) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(t);
-  }, [intervalMs]);
-  return now;
-}
 
 function readGroupPref(): boolean {
   try {

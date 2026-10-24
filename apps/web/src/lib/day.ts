@@ -23,6 +23,9 @@ export interface DayItem {
   area_id: string | null;
   google_event_id: string | null;
   google_calendar_id: string | null;
+  /** Google colour id ('default' = the calendar's colour) and that calendar colour. */
+  color_key: string | null;
+  calendar_color: string | null;
   tags: { id: string; name: string; source: string }[];
 }
 
@@ -78,7 +81,7 @@ export const backlogKey = ['backlog'] as const;
 export const missedKey = ['missed'] as const;
 
 /** Everything derived from items: refetched after any change to them. */
-const ITEM_VIEWS = [['day'], backlogKey, missedKey, ['days'], ['months']] as const;
+const ITEM_VIEWS = [['day'], backlogKey, missedKey, ['days'], ['months'], ['calendar']] as const;
 
 function invalidateItemViews(qc: QueryClient) {
   for (const queryKey of ITEM_VIEWS) void qc.invalidateQueries({ queryKey });
@@ -402,3 +405,12 @@ export const useScheduleTask = () =>
   useItemMutation(({ id, start, end }: { id: string; start: string; end: string }) =>
     appApi<{ item_id: string }>(`items/${id}/schedule`, { start, end }),
   );
+
+/** Items with a logical date in the range, 0-point blocks included (Calendar view). */
+export function useCalendarRange(from: string, to: string) {
+  return useQuery({
+    queryKey: ['calendar', from, to],
+    queryFn: () => rpc<DayItem[]>('calendar_range', { p_from: from, p_to: to }),
+    placeholderData: (previous) => previous,
+  });
+}

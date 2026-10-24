@@ -88,3 +88,14 @@ Choices the plan does not cover, one line each, with the reason. Newest at the b
 - A reconcile keeps the incremental sync token, so changes outside its window still reach the next incremental sync.
 - Checked: refresh tokens issued while the OAuth app is in Testing expire after 7 days. The app is published to Production unverified, which shows Google's "unverified app" screen and caps it at 100 new users.
 - Backups are encrypted with `age` to a key whose private half lives only at `~/.config/mjolnir/backup-age-key.txt` on the owner's laptop; artifacts are kept 90 days. Restore: `age -d -i <key> mjolnir-<date>.tar.gz.age | tar xz`, then `psql` the three files in order roles, schema, data.
+
+## Phase 6
+
+- Edits made in the app (create, rename, recolour, move, delete, schedule a task) go to Google first in `app-api`; Google's answer then runs through the sync planner, so app edits follow section 3.4 (M1 to M4, D1, D2) exactly as edits made in Google, and the stored etag makes the later sync skip the echo.
+- When Google refuses such a write the user sees the error and nothing changes locally; only the "✓ " write-back is queued for retries (`google_writes`). A queued retry with a "sync issue" badge for user writes can come with the offline queue in Phase 8.
+- Only user actions write to Google; a sync never does. This is what rules out sync loops.
+- The "✓ " write uses If-Match with the stored etag: if the event changed in Google meanwhile, Google answers 412 and the job retries after the sync has caught up, instead of overwriting the newer title.
+- Events created in the app use their item id (hex) as the Google event id and as `pt_item`, so the item exists before the sync sees the event.
+- Quick add is parsed in the browser with `chrono-node` against the user's profile timezone, independent of the device's.
+- Calendar tab (owner request, not in section 11): Day, Week and Month views in Google Calendar's style, with 0-point blocks shown (unlike Today's checklist), drag to create, drag to move (mouse; touch taps), and the item sheet on click. Items now store their Google colour (`color_key`); items synced earlier get it on the next full sync.
+- The calendar lays blocks out by local calendar date (Google's view), while Today and the tables stay on logical dates.

@@ -22,6 +22,8 @@ const base: DayItem = {
   area_id: null,
   google_event_id: 'ev1',
   google_calendar_id: 'me@x.com',
+  color_key: '11',
+  calendar_color: '#9fe1e7',
   tags: [{ id: 't1', name: 'lfx', source: 'hashtag' }],
 };
 
