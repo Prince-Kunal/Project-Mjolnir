@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { useForegroundRefresh, useItemsRealtime } from '../lib/day.ts';
+import { useForegroundRefresh, useItemsRealtime, useOfflineReplay } from '../lib/day.ts';
+import { useOfflineQueue } from '../lib/offlineTicks.ts';
 import { NAV } from '../lib/nav.ts';
 import { refreshPush } from '../lib/push.ts';
 import { QuickAddDialog } from '../features/today/QuickAddDialog.tsx';
@@ -12,6 +13,8 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 export function AppShell() {
   useItemsRealtime();
   useForegroundRefresh();
+  useOfflineReplay();
+  const waiting = useOfflineQueue((s) => s.waiting);
   // Browsers can rotate a push subscription; re-save it once per app start.
   useEffect(() => {
     refreshPush().catch(() => {});
@@ -37,6 +40,15 @@ export function AppShell() {
       </aside>
 
       <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-6 pb-24 md:px-8 md:pb-8">
+        {waiting > 0 && (
+          <p
+            role="status"
+            className="mx-auto mb-4 max-w-2xl rounded-lg border border-band-fair/40 bg-band-fair/10 px-3 py-2 text-sm"
+          >
+            Offline: {waiting} tick{waiting === 1 ? '' : 's'} saved on this device, sent when you
+            are back online.
+          </p>
+        )}
         <Outlet />
       </main>
 

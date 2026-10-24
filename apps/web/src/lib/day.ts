@@ -2,6 +2,14 @@ import { type DayScore, type ItemSource, type ItemStatus, scoreDay } from '@mjol
 import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useAuth } from './auth.ts';
+import {
+  enqueueTick,
+  forgetTick,
+  isNetworkError,
+  loadQueueCount,
+  replayTicks,
+} from './offlineTicks.ts';
+import { useToast } from './toast.ts';
 import { supabase } from './supabase.ts';
 
 export interface DayItem {
@@ -125,11 +133,22 @@ function patchCachedItem(qc: QueryClient, id: string, change: (i: DayItem) => Da
   }
 }
 
-/** Optimistic tick and untick (section 6: "Optimistic ticks"); rolls back on error. */
+function sendTick(id: string, done: boolean, actualMinutes: number | null) {
+  return done
+    ? rpc<DayItem>('complete_item', { p_id: id, p_actual_minutes: actualMinutes })
+    : rpc<DayItem>('uncomplete_item', { p_id: id });
+}
+
+/**
+ * Optimistic tick and untick (section 6: "Optimistic ticks"); rolls back on error. Offline, the
+ * tick is queued in IndexedDB instead and stays ticked on screen until it is sent.
+ */
 export function useToggleItem() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
+    // Runs offline too, so the tick can be queued rather than paused in memory.
+    networkMode: 'always',
+    mutationFn: async ({
       item,
       done,
       actualMinutes,
@@ -137,10 +156,26 @@ export function useToggleItem() {
       item: DayItem;
       done: boolean;
       actualMinutes?: number | null;
-    }) =>
-      done
-        ? rpc<DayItem>('complete_item', { p_id: item.id, p_actual_minutes: actualMinutes ?? null })
-        : rpc<DayItem>('uncomplete_item', { p_id: item.id }),
+    }): Promise<DayItem | null> => {
+      const queue = () =>
+        enqueueTick({
+          itemId: item.id,
+          userId: useAuth.getState().session?.user.id ?? '',
+          title: item.title,
+          done,
+          actualMinutes: actualMinutes ?? null,
+          at: new Date().toISOString(),
+        }).then(() => null);
+      if (!navigator.onLine) return queue();
+      try {
+        const saved = await sendTick(item.id, done, actualMinutes ?? null);
+        await forgetTick(item.id);
+        return saved;
+      } catch (err) {
+        if (isNetworkError(err)) return queue();
+        throw err;
+      }
+    },
     onMutate: async ({ item, done, actualMinutes }) => {
       await qc.cancelQueries({ queryKey: ['day'] });
       const snapshot = qc.getQueriesData<DayView>({ queryKey: ['day'] });
@@ -268,6 +303,34 @@ export function useItemsRealtime() {
       void supabase.removeChannel(channel);
     };
   }, [qc, userId]);
+}
+
+/** Sends ticks queued offline when the browser is back online, and once at start-up. */
+export function useOfflineReplay() {
+  const qc = useQueryClient();
+  const userId = useAuth((s) => s.session?.user.id);
+  const toast = useToast((s) => s.show);
+
+  useEffect(() => {
+    if (!userId) return;
+    const replay = async () => {
+      if (!navigator.onLine) return;
+      const { saved, refused } = await replayTicks(userId, (t) =>
+        sendTick(t.itemId, t.done, t.actualMinutes).then(() => undefined),
+      );
+      if (saved || refused.length) invalidateItemViews(qc);
+      if (refused.length)
+        toast(
+          refused.length === 1
+            ? `Could not save the offline tick on “${refused[0]!.tick.title}”: ${refused[0]!.error}`
+            : `${refused.length} offline ticks could not be saved.`,
+        );
+      else if (saved) toast(`Saved ${saved} tick${saved === 1 ? '' : 's'} made offline`);
+    };
+    void loadQueueCount().then(replay);
+    window.addEventListener('online', replay);
+    return () => window.removeEventListener('online', replay);
+  }, [qc, userId, toast]);
 }
 
 const SYNC_THROTTLE_MS = 60_000;

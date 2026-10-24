@@ -56,6 +56,9 @@ importers:
       chrono-node:
         specifier: ^2.10.3
         version: 2.10.3
+      idb-keyval:
+        specifier: 6.2.1
+        version: 6.2.1
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -96,6 +99,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.1.2
         version: 6.1.2(vite@8.3.4(@types/node@22.20.5)(jiti@2.7.0)(terser@5.51.2))
+      fake-indexeddb:
+        specifier: 6.0.0
+        version: 6.0.0
       jsdom:
         specifier: ^30.1.3
         version: 30.1.3
@@ -1958,6 +1964,10 @@ packages:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
 
+  fake-indexeddb@6.0.0:
+    resolution: {integrity: sha512-YEboHE5VfopUclOck7LncgIqskAqnv4q0EWbYCaxKKjAvO93c+TJIaBuGy8CBFdbg9nKdpN3AuPRwVBJ4k7NrQ==}
+    engines: {node: '>=18'}
+
   fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
 
@@ -2124,6 +2134,9 @@ packages:
   iceberg-js@0.8.1:
     resolution: {integrity: sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==}
     engines: {node: '>=20.0.0'}
+
+  idb-keyval@6.2.1:
+    resolution: {integrity: sha512-8Sb3veuYCyrZL+VBt9LJfZjLUPWVvqn8tG28VqYNFCo43KHcKuq+b4EiXGeuaLAQWL2YmyDgMp2aSpH9JHsEQg==}
 
   idb@7.1.1:
     resolution: {integrity: sha512-gchesWBzyvGHRO9W8tzUWFDycow5gwjvFKfyV9FF32Y7F50yZMp7mP+T2mJIWFx49zicqyC4uefHM17o6xKIVQ==}
@@ -5251,6 +5264,8 @@ snapshots:
 
   expect-type@1.4.0: {}
 
+  fake-indexeddb@6.0.0: {}
+
   fast-deep-equal@3.1.3: {}
 
   fast-equals@5.4.5: {}
@@ -5418,6 +5433,8 @@ snapshots:
       - '@noble/hashes'
 
   iceberg-js@0.8.1: {}
+
+  idb-keyval@6.2.1: {}
 
   idb@7.1.1: {}
 

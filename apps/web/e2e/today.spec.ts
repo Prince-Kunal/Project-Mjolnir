@@ -108,3 +108,37 @@ test('0-point events are hidden and the score matches a hand calculation', async
   await expect(page.getByRole('img', { name: 'Success rate 66.7%, Fair' })).toBeVisible();
   await context.close();
 });
+
+test('a tick made offline is saved once the browser is back online', async ({ browser }) => {
+  const task = await user.rpc<{ id: string }>('create_manual_task', {
+    p_title: 'Read paper',
+    p_points: 2,
+    p_date: today,
+  });
+  const context = await browser.newContext();
+  await signIn(context, user);
+  const page = await context.newPage();
+  await page.goto('/');
+  await expect(page.getByRole('checkbox', { name: 'Tick Read paper' })).toBeVisible();
+
+  await context.setOffline(true);
+  await page.getByRole('checkbox', { name: 'Tick Read paper' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Untick Read paper' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await expect(
+    page.getByRole('status').filter({ hasText: '1 tick saved on this device' }),
+  ).toBeVisible();
+  const status = async () =>
+    (await user.rpc<{ items: { id: string; status: string }[] }>('day_view')).items.find(
+      (i) => i.id === task.id,
+    )?.status;
+  expect(await status()).toBe('pending');
+
+  await context.setOffline(false);
+  await expect.poll(status, { timeout: 5000 }).toBe('done');
+  await expect(page.getByText('1 tick saved on this device')).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: 'Untick Read paper' })).toBeVisible();
+  await context.close();
+});
