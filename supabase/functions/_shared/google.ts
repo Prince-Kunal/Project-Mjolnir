@@ -5,6 +5,7 @@ import type { GEvent } from './sync/types.ts';
 
 export const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 export const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+export const GOOGLE_REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
 export const CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
 
 export const SCOPE_EVENTS = 'https://www.googleapis.com/auth/calendar.events';
@@ -382,6 +383,18 @@ export async function watchEvents(
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new GoogleError(res.status, errorReason(json, 'watch_failed'));
   return { resourceId: json.resourceId, expiration: Number(json.expiration) };
+}
+
+/** Revokes a refresh token, and with it the app's access to the account (section 13). */
+export async function revokeToken(token: string, fetchFn: FetchFn = fetch): Promise<void> {
+  const res = await fetchFn(GOOGLE_REVOKE_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ token }).toString(),
+  });
+  await res.body?.cancel();
+  // 400 invalid_token: already revoked or expired, which is the goal anyway.
+  if (!res.ok && res.status !== 400) throw new GoogleError(res.status, 'revoke_failed');
 }
 
 /** Stops a channel. One Google no longer knows about counts as stopped. */

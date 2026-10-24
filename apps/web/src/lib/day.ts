@@ -378,7 +378,7 @@ export const useRescheduleManual = () =>
   );
 
 /** Calls app-api, which writes to Google; surfaces its error message. */
-async function appApi<T>(
+export async function appApi<T>(
   path: string,
   body?: Record<string, unknown>,
   method: 'POST' | 'PATCH' | 'DELETE' = 'POST',

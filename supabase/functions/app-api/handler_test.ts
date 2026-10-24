@@ -1,7 +1,7 @@
 import { assertEquals, assertMatch } from '@std/assert';
 import { defaultColorRules, setRulePoints } from '@mjolnir/domain';
 import { pkceChallenge } from '../_shared/crypto.ts';
-import { CALENDAR_API, ReconnectNeededError } from '../_shared/google.ts';
+import { CALENDAR_API, GOOGLE_REVOKE_URL, ReconnectNeededError } from '../_shared/google.ts';
 import { fakeFetch } from '../_shared/testing.ts';
 import {
   type AppApiDeps,
@@ -28,6 +28,10 @@ interface Setup {
   eventWrite?: (req: { method: string; body: Record<string, unknown> }) => Response;
   noCalendar?: boolean;
   applyError?: RpcError;
+  channels?: { id: string; resource_id: string }[];
+  refreshToken?: string | null;
+  /** Answers channels.stop and token revocation. */
+  googleAccount?: (url: string, body: string) => Response;
 }
 
 const baseItem: EditContext = {
@@ -53,7 +57,16 @@ function setup(o: Setup = {}) {
   const log: string[] = [];
   const states: { userId: string; nonce: string; verifier: string }[] = [];
   const applied: SyncOp[] = [];
+  const account = (req: { url: URL; body: string }) => {
+    log.push(`google ${req.url.pathname} ${req.body}`);
+    return (o.googleAccount ?? (() => new Response(null, { status: 200 })))(
+      req.url.toString(),
+      req.body,
+    );
+  };
   const fetchFn = fakeFetch({
+    [`${CALENDAR_API}/channels/stop`]: account,
+    [GOOGLE_REVOKE_URL]: account,
     [EVENTS]: (req) =>
       (o.google ?? ((b) => Response.json({ etag: '"e1"', ...b })))(JSON.parse(req.body)),
     [`${EVENTS}/ev1`]: (req) => {
@@ -144,6 +157,14 @@ function setup(o: Setup = {}) {
       },
       abort: (itemId) => {
         log.push(`abort ${itemId}`);
+        return Promise.resolve();
+      },
+    },
+    account: {
+      channels: () => Promise.resolve(o.channels ?? []),
+      refreshToken: () => Promise.resolve(o.refreshToken === undefined ? 'rt-1' : o.refreshToken),
+      deleteUser: (userId) => {
+        log.push(`delete-user ${userId}`);
         return Promise.resolve();
       },
     },
@@ -562,3 +583,50 @@ Deno.test(
     assertEquals(bad.log.at(-1), `schedule-abort ${ITEM_ID} 2026-10-21`);
   },
 );
+
+// Account deletion (section 13) -----------------------------------------------------------------
+
+const del = (body?: unknown) =>
+  new Request(url('/me'), {
+    method: 'DELETE',
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+Deno.test('DELETE /me stops channels, revokes Google access, then deletes the user', async () => {
+  const { api, log } = setup({ channels: [{ id: 'ch-1', resource_id: 'res-1' }] });
+  const res = await api(del({ confirm: 'delete' }));
+  assertEquals(res.status, 200);
+  assertEquals(await res.json(), { deleted: true, steps: ['channel_stopped', 'google_revoked'] });
+  assertEquals(log, [
+    'google /calendar/v3/channels/stop {"id":"ch-1","resourceId":"res-1"}',
+    'google /revoke token=rt-1',
+    'delete-user u1',
+  ]);
+});
+
+Deno.test('DELETE /me needs an explicit confirmation', async () => {
+  const { api, log } = setup();
+  assertEquals((await api(del())).status, 400);
+  assertEquals((await api(del({ confirm: true }))).status, 400);
+  assertEquals(log, []);
+});
+
+Deno.test('Google failures never keep the account alive', async () => {
+  const { api, log } = setup({
+    channels: [{ id: 'ch-1', resource_id: 'res-1' }],
+    googleAccount: () => new Response('{}', { status: 503 }),
+  });
+  const res = await api(del({ confirm: 'delete' }));
+  assertEquals((await res.json()).steps, ['channel_stop_failed', 'google_revoke_failed']);
+  assertEquals(log.at(-1), 'delete-user u1');
+});
+
+Deno.test('an account that never connected Google is deleted without calling Google', async () => {
+  const { api, log } = setup({
+    token: () => Promise.reject(new ReconnectNeededError()),
+    refreshToken: null,
+  });
+  const res = await api(del({ confirm: 'delete' }));
+  assertEquals(res.status, 200);
+  assertEquals(log, ['delete-user u1']);
+});

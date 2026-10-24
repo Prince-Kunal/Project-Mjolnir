@@ -429,6 +429,9 @@ isOneToOne: false
 "dismiss_suggestion":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"export_data":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "google_connection":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -575,6 +578,9 @@ isOneToOne: false
                            },
 "svc_upsert_calendars":
 { Args: { "p_calendars": Json,"p_user_id": string }; Returns: undefined
+                           },
+"svc_user_channels":
+{ Args: { "p_user_id": string }; Returns: Json
                            },
 "svc_watch_context":
 { Args: { "p_calendar_id": string }; Returns: Json

@@ -19,6 +19,8 @@ import {
   insertEvent,
   patchEvent,
   ReconnectNeededError,
+  revokeToken,
+  stopChannel,
 } from '../_shared/google.ts';
 import { corsHeaders, json } from '../_shared/http.ts';
 import { planEvent } from '../_shared/sync/plan.ts';
@@ -129,6 +131,14 @@ export interface AppApiDeps {
     commit(itemId: string, etag: string): Promise<void>;
     abort(itemId: string): Promise<void>;
   };
+  account: {
+    /** Live watch channels to stop before the account goes. */
+    channels(userId: string): Promise<{ id: string; resource_id: string }[]>;
+    /** The decrypted Google refresh token, or null when Google was never connected. */
+    refreshToken(userId: string): Promise<string | null>;
+    /** Deletes the auth user; every row cascades. */
+    deleteUser(userId: string): Promise<void>;
+  };
   fetchFn?: FetchFn;
   now?: () => Date;
 }
@@ -152,6 +162,7 @@ const routes: { method: string; pattern: RegExp; handler: Handler }[] = [
   { method: 'PATCH', pattern: /^\/items\/(?<id>[0-9a-f-]{36})$/, handler: editEvent },
   { method: 'DELETE', pattern: /^\/items\/(?<id>[0-9a-f-]{36})$/, handler: deleteItemEvent },
   { method: 'POST', pattern: /^\/items\/(?<id>[0-9a-f-]{36})\/schedule$/, handler: scheduleTask },
+  { method: 'DELETE', pattern: /^\/me$/, handler: deleteAccount },
 ];
 
 /** Path after the function name: `/functions/v1/app-api/google/connect` -> `/google/connect`. */
@@ -588,4 +599,35 @@ async function scheduleTask(
     if (refusal) return refusal;
     throw err;
   }
+}
+
+/**
+ * Account deletion (section 13): stop watch channels, revoke the Google token, then delete the
+ * auth user, which removes every row. Google steps are best effort: a failure there never keeps
+ * the account alive.
+ */
+async function deleteAccount(req: Request, user: AppUser, deps: AppApiDeps): Promise<Response> {
+  const body = await req.json().catch(() => ({}));
+  if (body.confirm !== 'delete') {
+    return json({ error: 'send {"confirm": "delete"} to delete the account' }, 400);
+  }
+  const steps: string[] = [];
+  const token = await deps.accessToken(user.id).catch(() => null);
+  if (token) {
+    for (const c of await deps.account.channels(user.id)) {
+      await stopChannel(token, c.id, c.resource_id, deps.fetchFn).then(
+        () => steps.push('channel_stopped'),
+        () => steps.push('channel_stop_failed'),
+      );
+    }
+  }
+  const refresh = await deps.account.refreshToken(user.id).catch(() => null);
+  if (refresh) {
+    await revokeToken(refresh, deps.fetchFn).then(
+      () => steps.push('google_revoked'),
+      () => steps.push('google_revoke_failed'),
+    );
+  }
+  await deps.account.deleteUser(user.id);
+  return json({ deleted: true, steps });
 }

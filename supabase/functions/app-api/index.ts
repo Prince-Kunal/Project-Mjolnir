@@ -107,6 +107,27 @@ Deno.serve(
           );
         },
       }),
+    account: {
+      async channels(userId) {
+        const data = check(
+          'svc_user_channels',
+          await admin.rpc('svc_user_channels', { p_user_id: userId }),
+        );
+        return (data ?? []) as unknown as { id: string; resource_id: string }[];
+      },
+      async refreshToken(userId) {
+        const data = check(
+          'svc_get_google_account',
+          await admin.rpc('svc_get_google_account', { p_user_id: userId }),
+        );
+        const sealed = data?.[0]?.refresh_token_enc;
+        return sealed ? await decryptToken(key, sealed) : null;
+      },
+      async deleteUser(userId) {
+        const { error } = await admin.auth.admin.deleteUser(userId);
+        if (error) throw new Error(`delete user: ${error.message}`);
+      },
+    },
     items: {
       async appContext(userId) {
         const data = check(
