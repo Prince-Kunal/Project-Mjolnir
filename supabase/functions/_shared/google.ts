@@ -1,17 +1,23 @@
 // Google OAuth and Calendar API over plain fetch (plan section 6: no SDK).
 // Never log tokens, event titles or notes (section 13).
-import { base64UrlToBytes } from './crypto.ts';
-import type { GEvent } from './sync/types.ts';
+import { base64UrlToBytes } from "./crypto.ts";
+import type { GEvent } from "./sync/types.ts";
 
-export const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-export const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-export const CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
+export const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+export const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+export const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
-export const SCOPE_EVENTS = 'https://www.googleapis.com/auth/calendar.events';
-export const SCOPE_CALENDAR_LIST = 'https://www.googleapis.com/auth/calendar.calendarlist.readonly';
+export const SCOPE_EVENTS = "https://www.googleapis.com/auth/calendar.events";
+export const SCOPE_CALENDAR_LIST =
+  "https://www.googleapis.com/auth/calendar.calendarlist.readonly";
 
 /** Minimum set for Events mode, checked against Google's method references (DECISIONS.md). */
-export const CONNECT_SCOPES = ['openid', 'email', SCOPE_EVENTS, SCOPE_CALENDAR_LIST];
+export const CONNECT_SCOPES = [
+  "openid",
+  "email",
+  SCOPE_EVENTS,
+  SCOPE_CALENDAR_LIST,
+];
 export const REQUIRED_SCOPES = [SCOPE_EVENTS, SCOPE_CALENDAR_LIST];
 
 export type FetchFn = typeof fetch;
@@ -42,8 +48,11 @@ export type CalendarListEntry = {
 
 /** Calendar API errors carry `error.errors[0].reason`; OAuth errors carry `error`. */
 function errorReason(json: { error?: unknown }, fallback: string): string {
-  const e = json.error as { errors?: { reason?: string }[]; status?: string } | string | undefined;
-  if (typeof e === 'string') return e;
+  const e = json.error as
+    | { errors?: { reason?: string }[]; status?: string }
+    | string
+    | undefined;
+  if (typeof e === "string") return e;
   return e?.errors?.[0]?.reason ?? e?.status ?? fallback;
 }
 
@@ -63,27 +72,32 @@ export function buildConsentUrl(
   const params = new URLSearchParams({
     client_id: cfg.clientId,
     redirect_uri: cfg.redirectUri,
-    response_type: 'code',
-    scope: CONNECT_SCOPES.join(' '),
-    access_type: 'offline',
-    prompt: 'consent',
-    include_granted_scopes: 'true',
+    response_type: "code",
+    scope: CONNECT_SCOPES.join(" "),
+    access_type: "offline",
+    prompt: "consent",
+    include_granted_scopes: "true",
     state: opts.state,
     code_challenge: opts.codeChallenge,
-    code_challenge_method: 'S256',
+    code_challenge_method: "S256",
   });
-  if (opts.loginHint) params.set('login_hint', opts.loginHint);
+  if (opts.loginHint) params.set("login_hint", opts.loginHint);
   return `${GOOGLE_AUTH_URL}?${params}`;
 }
 
-async function tokenRequest(body: URLSearchParams, fetchFn: FetchFn): Promise<TokenResponse> {
+async function tokenRequest(
+  body: URLSearchParams,
+  fetchFn: FetchFn,
+): Promise<TokenResponse> {
   const res = await fetchFn(GOOGLE_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new GoogleError(res.status, String(json.error ?? 'token_error'));
+  if (!res.ok) {
+    throw new GoogleError(res.status, String(json.error ?? "token_error"));
+  }
   return json as TokenResponse;
 }
 
@@ -100,7 +114,7 @@ export function exchangeCode(
       client_id: cfg.clientId,
       client_secret: cfg.clientSecret,
       redirect_uri: cfg.redirectUri,
-      grant_type: 'authorization_code',
+      grant_type: "authorization_code",
     }),
     fetchFn,
   );
@@ -116,7 +130,7 @@ export function refreshAccessToken(
       refresh_token: refreshToken,
       client_id: cfg.clientId,
       client_secret: cfg.clientSecret,
-      grant_type: 'refresh_token',
+      grant_type: "refresh_token",
     }),
     fetchFn,
   );
@@ -126,16 +140,23 @@ export function refreshAccessToken(
  * Reads `sub` and `email` from the ID token. The token came straight from Google's token
  * endpoint over TLS, so OpenID Connect allows skipping signature checks here.
  */
-export function readIdToken(idToken: string): { sub: string; email: string | null } {
-  const payload = idToken.split('.')[1];
-  if (!payload) throw new Error('malformed id_token');
-  const claims = JSON.parse(new TextDecoder().decode(base64UrlToBytes(payload)));
-  if (typeof claims.sub !== 'string') throw new Error('id_token has no sub');
-  return { sub: claims.sub, email: typeof claims.email === 'string' ? claims.email : null };
+export function readIdToken(
+  idToken: string,
+): { sub: string; email: string | null } {
+  const payload = idToken.split(".")[1];
+  if (!payload) throw new Error("malformed id_token");
+  const claims = JSON.parse(
+    new TextDecoder().decode(base64UrlToBytes(payload)),
+  );
+  if (typeof claims.sub !== "string") throw new Error("id_token has no sub");
+  return {
+    sub: claims.sub,
+    email: typeof claims.email === "string" ? claims.email : null,
+  };
 }
 
 export function missingScopes(granted: string): string[] {
-  const have = new Set(granted.split(' '));
+  const have = new Set(granted.split(" "));
   return REQUIRED_SCOPES.filter((s) => !have.has(s));
 }
 
@@ -147,15 +168,24 @@ export async function listCalendars(
   let pageToken: string | undefined;
   do {
     const params = new URLSearchParams({
-      maxResults: '250',
-      fields: 'nextPageToken,items(id,summary,summaryOverride,backgroundColor,primary,accessRole)',
+      maxResults: "250",
+      fields:
+        "nextPageToken,items(id,summary,summaryOverride,backgroundColor,primary,accessRole)",
     });
-    if (pageToken) params.set('pageToken', pageToken);
-    const res = await fetchFn(`${CALENDAR_API}/users/me/calendarList?${params}`, {
-      headers: { authorization: `Bearer ${accessToken}` },
-    });
+    if (pageToken) params.set("pageToken", pageToken);
+    const res = await fetchFn(
+      `${CALENDAR_API}/users/me/calendarList?${params}`,
+      {
+        headers: { authorization: `Bearer ${accessToken}` },
+      },
+    );
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new GoogleError(res.status, String(json.error?.status ?? 'calendar_list'));
+    if (!res.ok) {
+      throw new GoogleError(
+        res.status,
+        String(json.error?.status ?? "calendar_list"),
+      );
+    }
     for (const c of json.items ?? []) {
       out.push({
         google_calendar_id: c.id,
@@ -190,7 +220,7 @@ export interface AccessTokenDeps {
 
 export class ReconnectNeededError extends Error {
   constructor() {
-    super('Google connection needs to be renewed');
+    super("Google connection needs to be renewed");
   }
 }
 
@@ -204,24 +234,33 @@ const EXPIRY_SKEW_MS = 60_000;
 export async function accessTokenFor(deps: AccessTokenDeps): Promise<string> {
   const now = deps.now?.() ?? new Date();
   const account = await deps.getAccount();
-  if (!account || account.status !== 'ok' || !account.refresh_token_enc) {
+  if (!account || account.status !== "ok" || !account.refresh_token_enc) {
     throw new ReconnectNeededError();
   }
   if (
     account.access_token_enc &&
     account.access_expires_at &&
-    new Date(account.access_expires_at).getTime() - EXPIRY_SKEW_MS > now.getTime()
+    new Date(account.access_expires_at).getTime() - EXPIRY_SKEW_MS >
+      now.getTime()
   ) {
     return await deps.decrypt(account.access_token_enc);
   }
   try {
     const refreshToken = await deps.decrypt(account.refresh_token_enc);
-    const tokens = await refreshAccessToken(deps.cfg, refreshToken, deps.fetchFn);
-    const expiresAt = new Date(now.getTime() + tokens.expires_in * 1000).toISOString();
-    await deps.saveAccessToken(await deps.encrypt(tokens.access_token), expiresAt);
+    const tokens = await refreshAccessToken(
+      deps.cfg,
+      refreshToken,
+      deps.fetchFn,
+    );
+    const expiresAt = new Date(now.getTime() + tokens.expires_in * 1000)
+      .toISOString();
+    await deps.saveAccessToken(
+      await deps.encrypt(tokens.access_token),
+      expiresAt,
+    );
     return tokens.access_token;
   } catch (err) {
-    if (err instanceof GoogleError && err.code === 'invalid_grant') {
+    if (err instanceof GoogleError && err.code === "invalid_grant") {
       await deps.markReconnectNeeded();
       throw new ReconnectNeededError();
     }
@@ -252,7 +291,7 @@ export function appProperties(
   deadlines: string[] = [],
 ): Record<string, string> {
   const join = (values: string[]) => {
-    let out = '';
+    let out = "";
     for (const v of values) {
       const next = out ? `${out},${v}` : v;
       if (next.length > MAX_PROPERTY_VALUE) break;
@@ -260,7 +299,12 @@ export function appProperties(
     }
     return out;
   };
-  return { pt_app: '1', pt_item: itemId, pt_tags: join(tags), pt_deadlines: join(deadlines) };
+  return {
+    pt_app: "1",
+    pt_item: itemId,
+    pt_tags: join(tags),
+    pt_deadlines: join(deadlines),
+  };
 }
 
 /** An event as Google returns it after a write; the planner reads it like a synced one. */
@@ -272,20 +316,28 @@ export async function insertEvent(
   e: NewEvent,
   fetchFn: FetchFn = fetch,
 ): Promise<WrittenEvent> {
-  const res = await fetchFn(`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      id: e.id,
-      summary: e.summary,
-      start: { dateTime: e.start, timeZone: e.timeZone },
-      end: { dateTime: e.end, timeZone: e.timeZone },
-      ...(e.colorId ? { colorId: e.colorId } : {}),
-      extendedProperties: { private: e.privateProperties },
-    }),
-  });
+  const res = await fetchFn(
+    `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: e.id,
+        summary: e.summary,
+        start: { dateTime: e.start, timeZone: e.timeZone },
+        end: { dateTime: e.end, timeZone: e.timeZone },
+        ...(e.colorId ? { colorId: e.colorId } : {}),
+        extendedProperties: { private: e.privateProperties },
+      }),
+    },
+  );
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new GoogleError(res.status, errorReason(json, 'insert_failed'));
+  if (!res.ok) {
+    throw new GoogleError(res.status, errorReason(json, "insert_failed"));
+  }
   return json as WrittenEvent;
 }
 
@@ -295,10 +347,14 @@ export interface EventPatch {
   colorId?: string | null;
   start?: { dateTime: string; timeZone: string };
   end?: { dateTime: string; timeZone: string };
+  /** Google merges these keys into the event's existing private properties. */
+  extendedProperties?: { private: Record<string, string> };
 }
 
 function eventUrl(calendarId: string, eventId: string): string {
-  return `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`;
+  return `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${
+    encodeURIComponent(eventId)
+  }`;
 }
 
 /**
@@ -315,16 +371,18 @@ export async function patchEvent(
 ): Promise<WrittenEvent> {
   const headers: Record<string, string> = {
     authorization: `Bearer ${accessToken}`,
-    'content-type': 'application/json',
+    "content-type": "application/json",
   };
-  if (opts.ifMatch) headers['if-match'] = opts.ifMatch;
+  if (opts.ifMatch) headers["if-match"] = opts.ifMatch;
   const res = await fetchFn(eventUrl(calendarId, eventId), {
-    method: 'PATCH',
+    method: "PATCH",
     headers,
     body: JSON.stringify(patch),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new GoogleError(res.status, errorReason(json, 'patch_failed'));
+  if (!res.ok) {
+    throw new GoogleError(res.status, errorReason(json, "patch_failed"));
+  }
   return json as WrittenEvent;
 }
 
@@ -336,12 +394,12 @@ export async function deleteEvent(
   fetchFn: FetchFn = fetch,
 ): Promise<void> {
   const res = await fetchFn(eventUrl(calendarId, eventId), {
-    method: 'DELETE',
+    method: "DELETE",
     headers: { authorization: `Bearer ${accessToken}` },
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok && res.status !== 404 && res.status !== 410) {
-    throw new GoogleError(res.status, errorReason(json, 'delete_failed'));
+    throw new GoogleError(res.status, errorReason(json, "delete_failed"));
   }
 }
 
@@ -366,11 +424,14 @@ export async function watchEvents(
   const res = await fetchFn(
     `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/watch`,
     {
-      method: 'POST',
-      headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      },
       body: JSON.stringify({
         id: w.id,
-        type: 'web_hook',
+        type: "web_hook",
         address: w.address,
         token: w.token,
         expiration: w.expiration,
@@ -378,7 +439,9 @@ export async function watchEvents(
     },
   );
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new GoogleError(res.status, errorReason(json, 'watch_failed'));
+  if (!res.ok) {
+    throw new GoogleError(res.status, errorReason(json, "watch_failed"));
+  }
   return { resourceId: json.resourceId, expiration: Number(json.expiration) };
 }
 
@@ -390,10 +453,15 @@ export async function stopChannel(
   fetchFn: FetchFn = fetch,
 ): Promise<void> {
   const res = await fetchFn(`${CALENDAR_API}/channels/stop`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json",
+    },
     body: JSON.stringify({ id, resourceId }),
   });
   await res.body?.cancel();
-  if (!res.ok && res.status !== 404) throw new GoogleError(res.status, 'stop_failed');
+  if (!res.ok && res.status !== 404) {
+    throw new GoogleError(res.status, "stop_failed");
+  }
 }

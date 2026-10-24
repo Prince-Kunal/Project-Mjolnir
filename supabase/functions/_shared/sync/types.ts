@@ -1,9 +1,9 @@
-import type { ColorRule, ItemStatus } from '@mjolnir/domain';
+import type { ColorRule, ItemStatus } from "@mjolnir/domain";
 
 /** The parts of a Google Calendar event the sync reads (singleEvents=true). */
 export interface GEvent {
   id: string;
-  status?: 'confirmed' | 'tentative' | 'cancelled';
+  status?: "confirmed" | "tentative" | "cancelled";
   etag?: string;
   summary?: string;
   colorId?: string;
@@ -13,6 +13,8 @@ export interface GEvent {
   updated?: string;
   eventType?: string;
   attendees?: { self?: boolean; responseStatus?: string }[];
+  /** Ours: pt_app, pt_item, pt_tags, pt_deadlines (section 7). */
+  extendedProperties?: { private?: Record<string, string> };
 }
 
 /** What the planner knows about the item an event maps to now (`google_active`). */
@@ -61,6 +63,12 @@ export interface ItemFields {
   color_key: string;
 }
 
+/** Links the app stored in an event's private properties: tag names and deadline ids. */
+export interface Links {
+  tags: string[];
+  deadlines: string[];
+}
+
 export interface AuditEvent {
   kind: string;
   payload?: Record<string, unknown>;
@@ -72,25 +80,35 @@ export interface Expect {
 }
 
 export type SyncOp =
-  | { op: 'create'; item: ItemFields; tags: string[]; events: AuditEvent[] }
   | {
-      op: 'update';
-      id: string;
-      expect: Expect;
-      patch: Partial<ItemFields>;
-      tags?: string[];
-      events: AuditEvent[];
-    }
+    op: "create";
+    item: ItemFields;
+    tags: string[];
+    links?: Links;
+    events: AuditEvent[];
+  }
   | {
-      op: 'replace';
-      id: string;
-      expect: Expect;
-      old_patch: { status?: ItemStatus; miss_reason?: string; finalized?: boolean };
-      old_events: AuditEvent[];
-      item: ItemFields;
-      tags: string[];
-      events: AuditEvent[];
+    op: "update";
+    id: string;
+    expect: Expect;
+    patch: Partial<ItemFields>;
+    tags?: string[];
+    events: AuditEvent[];
+  }
+  | {
+    op: "replace";
+    id: string;
+    expect: Expect;
+    old_patch: {
+      status?: ItemStatus;
+      miss_reason?: string;
+      finalized?: boolean;
     };
+    old_events: AuditEvent[];
+    item: ItemFields;
+    tags: string[];
+    events: AuditEvent[];
+  };
 
 export interface PagePlan {
   ops: SyncOp[];
