@@ -315,6 +315,12 @@ isOneToOne: false
 "streak":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"svc_app_context":
+{ Args: { "p_user_id": string }; Returns: Json
+                           },
+"svc_apply_app_ops":
+{ Args: { "p_calendar_id": string,"p_ops": Json }; Returns: Json
+                           },
 "svc_apply_sync_ops":
 { Args: { "p_calendar_id": string,"p_ops": Json,"p_seen"?: (string)[] }; Returns: Json
                            },
@@ -334,6 +340,9 @@ isOneToOne: false
                            },
 "svc_create_oauth_state":
 { Args: { "p_code_verifier": string,"p_nonce": string,"p_ttl_seconds"?: number,"p_user_id": string }; Returns: undefined
+                           },
+"svc_edit_context":
+{ Args: { "p_item_id": string,"p_user_id": string }; Returns: Json
                            },
 "svc_get_google_account":
 { Args: { "p_user_id": string }; Returns: {
@@ -375,6 +384,12 @@ isOneToOne: false
 "svc_save_google_account":
 { Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_email"?: string,"p_google_sub": string,"p_refresh_token_enc"?: string,"p_scopes": (string)[],"p_user_id": string }; Returns: undefined
                            },
+"svc_schedule_abort":
+{ Args: { "p_date": string,"p_item_id": string,"p_minutes": number }; Returns: undefined
+                           },
+"svc_schedule_prepare":
+{ Args: { "p_end": string,"p_item_id": string,"p_start": string,"p_user_id": string }; Returns: Json
+                           },
 "svc_sync_checkpoint":
 { Args: { "p_page_token"?: string,"p_source_id": string }; Returns: undefined
                            },
@@ -401,6 +416,12 @@ isOneToOne: false
                            },
 "svc_watch_context":
 { Args: { "p_calendar_id": string }; Returns: Json
+                           },
+"svc_write_context":
+{ Args: { "p_item_id": string }; Returns: Json
+                           },
+"svc_write_done":
+{ Args: { "p_etag": string,"p_item_id": string,"p_raw_title"?: string }; Returns: undefined
                            },
 "uncomplete_item":
 { Args: { "p_id": string }; Returns: Json
