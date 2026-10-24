@@ -47,6 +47,8 @@ export interface ChannelDeps {
     expires_at: string;
   }): Promise<void>;
   stopped(id: string): Promise<void>;
+  /** Google refused to watch this calendar; stop asking and let polling cover it. */
+  pushUnsupported(calendarId: string, reason: string): Promise<void>;
   accessToken(userId: string): Promise<string>;
   newId(): string;
   newSecret(): string;
@@ -72,12 +74,21 @@ export async function runWatch(job: WatchJob, deps: ChannelDeps): Promise<string
     const token = await deps.accessToken(ctx.user_id);
     const id = deps.newId();
     const secret = deps.newSecret();
-    const res = await watchEvents(
-      token,
-      ctx.google_calendar_id,
-      { id, token: secret, address: job.address, expiration: now.getTime() + CHANNEL_DAYS * DAY },
-      deps.fetchFn,
-    );
+    let res;
+    try {
+      res = await watchEvents(
+        token,
+        ctx.google_calendar_id,
+        { id, token: secret, address: job.address, expiration: now.getTime() + CHANNEL_DAYS * DAY },
+        deps.fetchFn,
+      );
+    } catch (err) {
+      if (isPermanentRefusal(err)) {
+        await deps.pushUnsupported(job.calendar_id, `${err.status} ${err.code}`);
+        return 'push_unsupported';
+      }
+      throw err;
+    }
     await deps.save({
       id,
       calendar_id: job.calendar_id,
@@ -90,6 +101,16 @@ export async function runWatch(job: WatchJob, deps: ChannelDeps): Promise<string
   // Create the new channel first, then stop the old one; they may overlap briefly (Google's advice).
   if (job.replace) await runStop({ kind: 'stop_channel', channel_id: job.replace }, deps);
   return healthy ? 'already_watching' : 'watching';
+}
+
+/**
+ * A client error that retrying will not fix: 400 and 404, or 403 other than rate limits.
+ * Public calendars such as "Holidays in India" are refused this way.
+ */
+function isPermanentRefusal(err: unknown): err is GoogleError {
+  if (!(err instanceof GoogleError)) return false;
+  if (err.status === 400 || err.status === 404) return true;
+  return err.status === 403 && !/rate|quota/i.test(err.code);
 }
 
 export async function runStop(job: StopJob, deps: ChannelDeps): Promise<string> {

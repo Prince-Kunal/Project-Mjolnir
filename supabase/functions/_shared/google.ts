@@ -39,6 +39,13 @@ export type CalendarListEntry = {
   access_role: string;
 };
 
+/** Calendar API errors carry `error.errors[0].reason`; OAuth errors carry `error`. */
+function errorReason(json: { error?: unknown }, fallback: string): string {
+  const e = json.error as { errors?: { reason?: string }[]; status?: string } | string | undefined;
+  if (typeof e === 'string') return e;
+  return e?.errors?.[0]?.reason ?? e?.status ?? fallback;
+}
+
 export class GoogleError extends Error {
   constructor(
     readonly status: number,
@@ -311,7 +318,7 @@ export async function watchEvents(
     },
   );
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new GoogleError(res.status, String(json.error?.status ?? 'watch_failed'));
+  if (!res.ok) throw new GoogleError(res.status, errorReason(json, 'watch_failed'));
   return { resourceId: json.resourceId, expiration: Number(json.expiration) };
 }
 

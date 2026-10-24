@@ -164,6 +164,13 @@ const channels: ChannelDeps = {
   async stopped(id) {
     check('svc_channel_stopped', await admin.rpc('svc_channel_stopped', { p_id: id }));
   },
+  async pushUnsupported(calendarId, reason) {
+    console.log(`watch refused for a calendar: ${reason}`);
+    check(
+      'svc_mark_push_unsupported',
+      await admin.rpc('svc_mark_push_unsupported', { p_calendar_id: calendarId, p_reason: reason }),
+    );
+  },
 };
 
 const handler = createWorker(

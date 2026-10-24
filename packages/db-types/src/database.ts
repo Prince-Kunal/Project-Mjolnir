@@ -340,6 +340,9 @@ isOneToOne: false
               "access_expires_at": string,"access_token_enc": string,"email": string,"google_sub": string,"refresh_token_enc": string,"scopes": (string)[],"status": string
             }[]
                            },
+"svc_mark_push_unsupported":
+{ Args: { "p_calendar_id": string,"p_reason": string }; Returns: undefined
+                           },
 "svc_mark_reconnect_needed":
 { Args: { "p_user_id": string }; Returns: undefined
                            },

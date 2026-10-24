@@ -1,4 +1,4 @@
-import { assertEquals } from '@std/assert';
+import { assertEquals, assertRejects } from '@std/assert';
 import { type ChannelDeps, runStop, runWatch, type WatchContext } from './channels.ts';
 import { CALENDAR_API, ReconnectNeededError } from './google.ts';
 import { fakeFetch } from './testing.ts';
@@ -6,7 +6,10 @@ import { fakeFetch } from './testing.ts';
 const NOW = new Date('2026-10-21T10:00:00Z');
 const inHours = (h: number) => new Date(NOW.getTime() + h * 3_600_000).toISOString();
 
-function setup(ctx: WatchContext | null, opts: { tokenFails?: boolean; stopStatus?: number } = {}) {
+function setup(
+  ctx: WatchContext | null,
+  opts: { tokenFails?: boolean; stopStatus?: number; watchError?: [number, string] } = {},
+) {
   const log: string[] = [];
   const stored = new Map([
     [
@@ -18,6 +21,13 @@ function setup(ctx: WatchContext | null, opts: { tokenFails?: boolean; stopStatu
     [`${CALENDAR_API}/calendars/me%40x.com/events/watch`]: (req) => {
       const body = JSON.parse(req.body);
       log.push(`watch ${body.id} ${body.address} ${body.type}`);
+      if (opts.watchError) {
+        const [status, reason] = opts.watchError;
+        return Response.json(
+          { error: { code: status, errors: [{ reason }], message: reason } },
+          { status },
+        );
+      }
       return Response.json({
         resourceId: 'res-new',
         expiration: String(NOW.getTime() + 7 * 86_400_000),
@@ -39,6 +49,10 @@ function setup(ctx: WatchContext | null, opts: { tokenFails?: boolean; stopStatu
     },
     stopped: (id) => {
       log.push(`stopped ${id}`);
+      return Promise.resolve();
+    },
+    pushUnsupported: (calendarId, reason) => {
+      log.push(`unsupported ${calendarId} ${reason}`);
       return Promise.resolve();
     },
     accessToken: () =>
@@ -123,3 +137,24 @@ Deno.test(
     assertEquals(noAccess.log, ['stopped old']);
   },
 );
+
+Deno.test('a calendar Google refuses to watch is marked and not retried', async () => {
+  const { deps, log } = setup(ctx(), { watchError: [400, 'pushNotSupportedForRequestedResource'] });
+  assertEquals(await runWatch(job(), deps), 'push_unsupported');
+  assertEquals(log.at(-1), 'unsupported cal-1 400 pushNotSupportedForRequestedResource');
+});
+
+Deno.test('rate limits and server errors still retry', async () => {
+  for (const [status, reason] of [
+    [403, 'rateLimitExceeded'],
+    [429, 'rateLimitExceeded'],
+    [503, 'backendError'],
+  ] as const) {
+    const { deps, log } = setup(ctx(), { watchError: [status, reason] });
+    await assertRejects(() => runWatch(job(), deps));
+    assertEquals(
+      log.some((l) => l.startsWith('unsupported')),
+      false,
+    );
+  }
+});

@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(21);
 
 insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111', 'a@example.com');
 select public.svc_save_google_account(
@@ -73,6 +73,14 @@ select is(
   (public.svc_channel_get('d0000000-0000-0000-0000-000000000003') ->> 'token_hash'), 'hash-3',
   'the webhook can look a channel up'
 );
+
+-- A calendar Google refuses to watch is left to polling until it is enabled again.
+delete from pgmq.q_jobs;
+select public.svc_mark_push_unsupported('c0000000-0000-0000-0000-000000000002', '400 pushNotSupportedForRequestedResource');
+select private.queue_watch('c0000000-0000-0000-0000-000000000002');
+select is(pg_temp.jobs('watch'), 0::bigint, 'a calendar that refused push is not queued again');
+update public.calendars set sync_enabled = true where id = 'c0000000-0000-0000-0000-000000000002';
+select is(pg_temp.jobs('watch'), 1::bigint, 'enabling it again gives push another try');
 
 -- Polls --------------------------------------------------------------------------------------------
 
