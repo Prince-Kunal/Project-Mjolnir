@@ -10,7 +10,7 @@ import { BacklogDrawer } from './BacklogDrawer.tsx';
 import { DailyNote } from './DailyNote.tsx';
 import { ItemRow } from './ItemRow.tsx';
 import { ItemSheet } from './ItemSheet.tsx';
-import { QuickAddTask } from './QuickAddTask.tsx';
+import { QuickAdd } from './QuickAdd.tsx';
 import { BAND_COLOR, BAND_LABEL } from '../../lib/bands.ts';
 import { ScoreRing } from './ScoreRing.tsx';
 import { StreakLine } from './StreakLine.tsx';
@@ -249,7 +249,7 @@ export function TodayPage() {
 
       {!view.finalized && (
         <div className="mt-8">
-          <QuickAddTask date={view.date} />
+          <QuickAdd defaultDate={view.date} />
         </div>
       )}
 

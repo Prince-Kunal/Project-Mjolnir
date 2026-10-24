@@ -11,6 +11,9 @@ export interface QuickAddResult {
   rawTitle: string;
   tags: string[];
   points: 1 | 2 | 3;
+  /** Whether the text set the points (`!2`) or the day/time, rather than the defaults. */
+  hasPoints: boolean;
+  hasDate: boolean;
   /** Logical date: of the event's start, or the task's day. */
   date: string;
   start: string | null;
@@ -103,6 +106,8 @@ export function parseQuickAdd(input: string, ctx: QuickAddContext): QuickAddResu
       rawTitle,
       tags,
       points,
+      hasPoints: p !== null,
+      hasDate: true,
       date: logicalDate(start, ctx.timeZone, ctx.boundaryHour),
       start,
       end,
@@ -115,6 +120,8 @@ export function parseQuickAdd(input: string, ctx: QuickAddContext): QuickAddResu
     rawTitle,
     tags,
     points,
+    hasPoints: p !== null,
+    hasDate: day !== null,
     date: day ?? today,
     start: null,
     end: null,

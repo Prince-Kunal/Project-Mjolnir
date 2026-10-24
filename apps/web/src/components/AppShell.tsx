@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useForegroundRefresh, useItemsRealtime } from '../lib/day.ts';
 import { NAV } from '../lib/nav.ts';
+import { QuickAddDialog } from '../features/today/QuickAddDialog.tsx';
 import { Toaster } from './Toast.tsx';
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -48,6 +49,7 @@ export function AppShell() {
           </NavLink>
         ))}
       </nav>
+      <QuickAddDialog />
       <Toaster />
     </div>
   );

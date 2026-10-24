@@ -150,6 +150,7 @@ export interface NewTask {
   date: string | null;
   areaId?: string | null;
   tags: string[];
+  plannedMinutes?: number | null;
 }
 
 export function useCreateTask() {
@@ -162,6 +163,7 @@ export function useCreateTask() {
         p_date: t.date,
         p_area_id: t.areaId ?? null,
         p_tags: t.tags,
+        p_planned_minutes: t.plannedMinutes ?? null,
       }),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: ['day'] });
@@ -288,10 +290,14 @@ export const useRescheduleManual = () =>
   );
 
 /** Calls app-api, which writes to Google; surfaces its error message. */
-async function appApi<T>(path: string, body: Record<string, unknown>): Promise<T> {
+async function appApi<T>(
+  path: string,
+  body?: Record<string, unknown>,
+  method: 'POST' | 'PATCH' | 'DELETE' = 'POST',
+): Promise<T> {
   const { data, error } = await supabase.functions.invoke<T>(`app-api/${path}`, {
-    method: 'POST',
-    body,
+    method,
+    ...(body ? { body } : {}),
   });
   if (error) {
     let message = 'Something went wrong. Try again.';
@@ -359,3 +365,38 @@ export function useMonths(year: number) {
     queryFn: () => rpc<MonthRow[]>('months_summary', { p_year: year }),
   });
 }
+
+// Events made and changed in the app (Phase 6) ------------------------------------------------
+
+export interface NewEvent {
+  /** Title with its #tags, as it should read in Google Calendar. */
+  title: string;
+  points: number;
+  start: string;
+  end: string;
+}
+
+export const useCreateEvent = () =>
+  useItemMutation((e: NewEvent) => appApi<{ item_id: string }>('items', { ...e }));
+
+export const useEditEvent = () =>
+  useItemMutation(
+    ({
+      id,
+      ...patch
+    }: {
+      id: string;
+      title?: string;
+      points?: number;
+      start?: string;
+      end?: string;
+    }) => appApi<{ item_id: string }>(`items/${id}`, patch, 'PATCH'),
+  );
+
+export const useDeleteEvent = () =>
+  useItemMutation((id: string) => appApi<{ item_id: string }>(`items/${id}`, undefined, 'DELETE'));
+
+export const useScheduleTask = () =>
+  useItemMutation(({ id, start, end }: { id: string; start: string; end: string }) =>
+    appApi<{ item_id: string }>(`items/${id}/schedule`, { start, end }),
+  );

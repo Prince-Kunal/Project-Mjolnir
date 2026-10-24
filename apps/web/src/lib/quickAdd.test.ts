@@ -17,6 +17,8 @@ describe('parseQuickAdd (section 5: quick add)', () => {
       rawTitle: 'PR review #lfx',
       tags: ['lfx'],
       points: 2,
+      hasPoints: true,
+      hasDate: true,
       date: '2026-10-25',
       start: ist('2026-10-25T18:00:00'),
       end: ist('2026-10-25T20:00:00'),
@@ -91,5 +93,13 @@ describe('parseQuickAdd (section 5: quick add)', () => {
 
   it('returns an empty title for empty input', () => {
     expect(parseQuickAdd('   ', ctx)).toMatchObject({ kind: 'task', title: '' });
+  });
+
+  it('says when neither a day nor points were given', () => {
+    expect(parseQuickAdd('Call bank', ctx)).toMatchObject({ hasPoints: false, hasDate: false });
+    expect(parseQuickAdd('Call bank friday !2', ctx)).toMatchObject({
+      hasPoints: true,
+      hasDate: true,
+    });
   });
 });
