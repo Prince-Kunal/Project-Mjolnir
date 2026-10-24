@@ -41,6 +41,7 @@ const item = (over: Partial<ItemSnapshot> = {}): ItemSnapshot => ({
   raw_title: 'PR review #lfx',
   planned_minutes: 120,
   google_etag: '"1"',
+  color_key: '11',
   ...over,
 });
 
@@ -335,4 +336,17 @@ Deno.test('planUnseen deletes items that vanished, following D1 and D2', () => {
   assertEquals(ops.length, 2);
   assertEquals(ops[0]!.op === 'update' && ops[0]!.patch.status, 'deleted');
   assertEquals(ops[1]!.op === 'update' && ops[1]!.patch.status, undefined);
+});
+
+Deno.test('every event records its Google colour; no colour means the calendar default', () => {
+  const op = only(planEvent(event(), null, ctx()).ops);
+  assertEquals(op.op === 'create' && op.item.color_key, '11');
+  const plain = only(planEvent(event({ colorId: undefined }), null, ctx()).ops);
+  assertEquals(plain.op === 'create' && plain.item.color_key, 'default');
+});
+
+Deno.test('an unchanged event still fills in a colour missing from older items, once', () => {
+  const backfill = only(planEvent(event({ etag: '"1"' }), item({ color_key: null }), ctx()).ops);
+  assertEquals(backfill.op === 'update' && backfill.patch.color_key, '11');
+  assertEquals(planEvent(event({ etag: '"1"' }), item(), ctx()).ops, []);
 });

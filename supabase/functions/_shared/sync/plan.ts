@@ -68,6 +68,7 @@ function fieldsFor(e: GEvent, ctx: PlanContext): { fields: ItemFields; tags: str
       recurring_event_id: e.recurringEventId ?? null,
       google_etag: e.etag ?? null,
       google_updated_at: e.updated ? iso(e.updated) : null,
+      color_key: e.colorId ?? 'default',
     },
   };
 }
@@ -107,7 +108,16 @@ export function planEvent(e: GEvent, item: ItemSnapshot | null, ctx: PlanContext
   }
 
   // Echo of our own write, or a change we already applied.
-  if (item && item.status !== 'deleted' && e.etag && item.google_etag === e.etag) return seen();
+  // An item synced before colours were stored is updated once even when unchanged.
+  if (
+    item &&
+    item.status !== 'deleted' &&
+    e.etag &&
+    item.google_etag === e.etag &&
+    item.color_key != null
+  ) {
+    return seen();
+  }
 
   const { fields, tags } = fieldsFor(e, ctx);
 
@@ -205,6 +215,7 @@ export function planEvent(e: GEvent, item: ItemSnapshot | null, ctx: PlanContext
     recurring_event_id: fields.recurring_event_id,
     google_etag: fields.google_etag,
     google_updated_at: fields.google_updated_at,
+    color_key: fields.color_key,
   };
   if (titleChanged) {
     patch.title = fields.title;

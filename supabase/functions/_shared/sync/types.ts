@@ -28,6 +28,8 @@ export interface ItemSnapshot {
   raw_title: string | null;
   planned_minutes: number | null;
   google_etag: string | null;
+  /** Google colour id, or 'default'. Null for items synced before colours were stored. */
+  color_key?: string | null;
 }
 
 export interface PlanContext {
@@ -55,6 +57,8 @@ export interface ItemFields {
   recurring_event_id: string | null;
   google_etag: string | null;
   google_updated_at: string | null;
+  /** The event's Google colour id, or 'default' for the calendar's colour. */
+  color_key: string;
 }
 
 export interface AuditEvent {
