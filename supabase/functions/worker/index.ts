@@ -8,6 +8,12 @@ import {
   type WatchJob,
 } from '../_shared/channels.ts';
 import {
+  type CheckmarkJob,
+  runCheckmark,
+  type WriteContext,
+  type WriteDeps,
+} from '../_shared/writes.ts';
+import {
   decryptToken,
   encryptToken,
   importTokenKey,
@@ -173,6 +179,23 @@ const channels: ChannelDeps = {
   },
 };
 
+const writes: WriteDeps = {
+  accessToken,
+  async context(itemId) {
+    const data = check(
+      'svc_write_context',
+      await admin.rpc('svc_write_context', { p_item_id: itemId }),
+    );
+    return (data as unknown as WriteContext) ?? null;
+  },
+  async done(itemId, etag, rawTitle) {
+    check(
+      'svc_write_done',
+      await admin.rpc('svc_write_done', { p_item_id: itemId, p_etag: etag, p_raw_title: rawTitle }),
+    );
+  },
+};
+
 const handler = createWorker(
   {
     secret: requireEnv('WORKER_SECRET'),
@@ -204,6 +227,12 @@ const handler = createWorker(
       sync_jobs: (m, deadline) => {
         if (typeof m.source_id !== 'string') throw new BadMessage('no source_id');
         return syncSource(m.source_id, { store, accessToken, deadline });
+      },
+      google_writes: (m) => {
+        if (m.kind === 'checkmark' && typeof m.item_id === 'string') {
+          return runCheckmark(m as unknown as CheckmarkJob, writes);
+        }
+        throw new BadMessage(`unknown write ${String(m.kind)}`);
       },
       jobs: (m) => {
         if (m.kind === 'watch') return runWatch(m as unknown as WatchJob, channels);

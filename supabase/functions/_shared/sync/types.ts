@@ -40,6 +40,8 @@ export interface PlanContext {
 }
 
 export interface ItemFields {
+  /** Set when app-api chose the id in advance (it goes into the event's pt_item property). */
+  id?: string;
   title: string;
   raw_title: string;
   points: number;

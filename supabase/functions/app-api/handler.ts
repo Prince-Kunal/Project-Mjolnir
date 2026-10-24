@@ -4,18 +4,26 @@ import {
   type ColorRule,
   colorForPoints,
   logicalDate,
+  parseTitle,
   shiftLocalDays,
 } from '@mjolnir/domain';
 import { pkceChallenge, randomToken } from '../_shared/crypto.ts';
 import {
   appProperties,
   buildConsentUrl,
+  deleteEvent,
+  type EventPatch,
   type FetchFn,
+  GoogleError,
   type GoogleOAuthConfig,
   insertEvent,
+  patchEvent,
   ReconnectNeededError,
 } from '../_shared/google.ts';
 import { corsHeaders, json } from '../_shared/http.ts';
+import { planEvent } from '../_shared/sync/plan.ts';
+import type { ItemSnapshot, PlanContext, SyncOp } from '../_shared/sync/types.ts';
+import { withCheckmark } from '../_shared/writes.ts';
 
 export interface AppUser {
   id: string;
@@ -44,6 +52,38 @@ export interface PreparedReschedule {
   color_rules: ColorRule[];
 }
 
+/** Settings and the calendar new events go to (svc_app_context). */
+export interface AppContext {
+  timezone: string;
+  day_boundary_hour: number;
+  include_all_day: boolean;
+  writeback_checkmark: boolean;
+  color_rules: ColorRule[];
+  calendar: { id: string; google_calendar_id: string } | null;
+}
+
+/** An item app-api is about to change (svc_edit_context). */
+export interface EditContext extends ItemSnapshot {
+  source: string;
+  google_active: boolean;
+  calendar_id: string | null;
+  google_calendar_id: string | null;
+  access_role: string | null;
+}
+
+export interface PreparedSchedule {
+  item_id: string;
+  google_event_id: string;
+  google_calendar_id: string;
+  summary: string;
+  points: number;
+  time_zone: string;
+  previous_date: string | null;
+  previous_minutes: number | null;
+  tags: string[];
+  color_rules: ColorRule[];
+}
+
 interface InboxItem {
   id: string;
   source: string;
@@ -62,6 +102,20 @@ export interface AppApiDeps {
   userRpc<T>(req: Request, name: string, args?: Record<string, unknown>): Promise<T>;
   profile(userId: string): Promise<{ timezone: string; day_boundary_hour: number }>;
   accessToken(userId: string): Promise<string>;
+  items: {
+    appContext(userId: string): Promise<AppContext>;
+    editContext(userId: string, itemId: string): Promise<EditContext | null>;
+    /** Applies planner ops like a sync does. Throws RpcError. */
+    applyOps(calendarId: string, ops: SyncOp[]): Promise<{ applied: number; skipped: number }>;
+    schedulePrepare(
+      userId: string,
+      itemId: string,
+      start: string,
+      end: string,
+    ): Promise<PreparedSchedule>;
+    scheduleAbort(itemId: string, date: string | null, minutes: number | null): Promise<void>;
+    newItemId(): string;
+  };
   reschedule: {
     prepare(
       userId: string,
@@ -91,6 +145,10 @@ const routes: { method: string; pattern: RegExp; handler: Handler }[] = [
     handler: rescheduleMissed,
   },
   { method: 'POST', pattern: /^\/missed\/bulk$/, handler: bulkMissed },
+  { method: 'POST', pattern: /^\/items$/, handler: createEvent },
+  { method: 'PATCH', pattern: /^\/items\/(?<id>[0-9a-f-]{36})$/, handler: editEvent },
+  { method: 'DELETE', pattern: /^\/items\/(?<id>[0-9a-f-]{36})$/, handler: deleteItemEvent },
+  { method: 'POST', pattern: /^\/items\/(?<id>[0-9a-f-]{36})\/schedule$/, handler: scheduleTask },
 ];
 
 /** Path after the function name: `/functions/v1/app-api/google/connect` -> `/google/connect`. */
@@ -261,4 +319,270 @@ async function bulkMissed(req: Request, user: AppUser, deps: AppApiDeps): Promis
     }
   }
   return json({ rescheduled, failed });
+}
+
+// Events created and edited in the app (plan 9.3, Phase 6) ---------------------------------------
+// Each route writes to Google first, then runs Google's answer through the same planner the sync
+// uses, so moves, deletes and colour changes follow section 3.4 exactly as edits made in Google.
+// The stored etag makes the sync skip the echo of our own write.
+
+/** Events made in the app are never too far off to keep, unlike sync's 30/90-day window. */
+const APP_WINDOW_MS = 10 * 365 * 86_400_000;
+
+function planContext(ctx: AppContext, now: Date): PlanContext {
+  return {
+    timeZone: ctx.timezone,
+    boundaryHour: ctx.day_boundary_hour,
+    includeAllDay: ctx.include_all_day,
+    rules: ctx.color_rules,
+    now,
+    window: {
+      from: new Date(now.getTime() - APP_WINDOW_MS),
+      to: new Date(now.getTime() + APP_WINDOW_MS),
+    },
+  };
+}
+
+/** Google colour for points, or null for the calendar default. Throws when no colour maps to it. */
+function colorFor(rules: ColorRule[], points: number): string | null {
+  const key = colorForPoints(rules, points as 1 | 2 | 3);
+  if (!key)
+    throw new RpcError('22023', `No colour is worth ${points} points. Map one in Settings.`);
+  return key === 'default' ? null : key;
+}
+
+function validPoints(v: unknown): v is 1 | 2 | 3 {
+  return v === 1 || v === 2 || v === 3;
+}
+
+/** Gives new items (create, or the new slot of a replace) ids chosen here. */
+function withNewIds(
+  ops: SyncOp[],
+  newId: () => string,
+  first?: string,
+): { ops: SyncOp[]; itemId: string | null } {
+  let itemId: string | null = null;
+  const out = ops.map((op) => {
+    if (op.op === 'update') return op;
+    const id = itemId ?? first ?? newId();
+    itemId = id;
+    return { ...op, item: { ...op.item, id } };
+  });
+  return { ops: out, itemId };
+}
+
+/** Google refused because the calendar is read-only or the event is gone: say so plainly. */
+function googleRefusal(err: unknown): Response | null {
+  if (!(err instanceof GoogleError)) return null;
+  if (err.status === 403 && !/rate|quota/i.test(err.code)) {
+    return json({ error: 'This calendar is read-only in Google.' }, 403);
+  }
+  if (err.status === 404 || err.status === 410) {
+    return json({ error: 'This event no longer exists in Google Calendar.' }, 404);
+  }
+  return json({ error: 'google_failed' }, 502);
+}
+
+async function createEvent(req: Request, user: AppUser, deps: AppApiDeps): Promise<Response> {
+  const body = await req.json().catch(() => ({}));
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  if (
+    !title ||
+    !validPoints(body.points) ||
+    !isInstant(body.start) ||
+    !isInstant(body.end) ||
+    Date.parse(body.end) <= Date.parse(body.start)
+  ) {
+    return json(
+      { error: 'title, points (1 to 3), start and end are required, with end after start' },
+      400,
+    );
+  }
+  const ctx = await deps.items.appContext(user.id);
+  if (!ctx.calendar) return json({ error: 'Enable a calendar Mjolnir can write to first.' }, 400);
+
+  const token = await deps.accessToken(user.id);
+  const itemId = deps.items.newItemId();
+  let event;
+  try {
+    event = await insertEvent(
+      token,
+      ctx.calendar.google_calendar_id,
+      {
+        // The item id doubles as the event id: hex, so valid base32hex for Google.
+        id: itemId.replaceAll('-', ''),
+        summary: title,
+        start: new Date(body.start).toISOString(),
+        end: new Date(body.end).toISOString(),
+        timeZone: ctx.timezone,
+        colorId: colorFor(ctx.color_rules, body.points),
+        privateProperties: appProperties(itemId, parseTitle(title).tags),
+      },
+      deps.fetchFn,
+    );
+  } catch (err) {
+    const refusal = googleRefusal(err);
+    if (refusal) return refusal;
+    throw err;
+  }
+
+  const plan = planEvent(event, null, planContext(ctx, deps.now?.() ?? new Date()));
+  const { ops } = withNewIds(plan.ops, deps.items.newItemId, itemId);
+  try {
+    await deps.items.applyOps(ctx.calendar.id, ops);
+  } catch (err) {
+    // The webhook sync got there first and already created the item: nothing left to do.
+    if (!(err instanceof RpcError && err.code === '23505')) throw err;
+  }
+  return json({ item_id: itemId }, 201);
+}
+
+async function editEvent(
+  req: Request,
+  user: AppUser,
+  deps: AppApiDeps,
+  params: Record<string, string>,
+): Promise<Response> {
+  const body = await req.json().catch(() => ({}));
+  const item = await deps.items.editContext(user.id, params.id!);
+  if (
+    !item ||
+    item.source !== 'calendar' ||
+    !item.google_active ||
+    item.status === 'deleted' ||
+    !item.google_calendar_id ||
+    !item.calendar_id
+  ) {
+    return json({ error: 'event not found' }, 404);
+  }
+  const ctx = await deps.items.appContext(user.id);
+
+  const patch: EventPatch = {};
+  if (body.title !== undefined) {
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    if (!title) return json({ error: 'the title cannot be empty' }, 400);
+    // Keep the ✓ a done item already shows.
+    patch.summary = withCheckmark(title, item.status === 'done' && ctx.writeback_checkmark);
+  }
+  if (body.points !== undefined) {
+    if (!validPoints(body.points)) return json({ error: 'points must be 1 to 3' }, 400);
+    patch.colorId = colorFor(ctx.color_rules, body.points);
+  }
+  if (body.start !== undefined || body.end !== undefined) {
+    if (
+      !isInstant(body.start) ||
+      !isInstant(body.end) ||
+      Date.parse(body.end) <= Date.parse(body.start)
+    ) {
+      return json({ error: 'start and end must be times, with end after start' }, 400);
+    }
+    patch.start = { dateTime: new Date(body.start).toISOString(), timeZone: ctx.timezone };
+    patch.end = { dateTime: new Date(body.end).toISOString(), timeZone: ctx.timezone };
+  }
+  if (Object.keys(patch).length === 0) return json({ error: 'nothing to change' }, 400);
+
+  let event;
+  try {
+    event = await patchEvent(
+      await deps.accessToken(user.id),
+      item.google_calendar_id,
+      item.google_event_id,
+      patch,
+      {},
+      deps.fetchFn,
+    );
+  } catch (err) {
+    const refusal = googleRefusal(err);
+    if (refusal) return refusal;
+    throw err;
+  }
+
+  // A move to another day after the start becomes a miss plus a new item (M3), as in Google.
+  const plan = planEvent(event, item, planContext(ctx, deps.now?.() ?? new Date()));
+  const { ops, itemId } = withNewIds(plan.ops, deps.items.newItemId);
+  const result = await deps.items.applyOps(item.calendar_id, ops);
+  if (result.skipped > 0) return json({ error: 'The item changed meanwhile. Try again.' }, 409);
+  return json({ item_id: itemId ?? item.id });
+}
+
+async function deleteItemEvent(
+  _req: Request,
+  user: AppUser,
+  deps: AppApiDeps,
+  params: Record<string, string>,
+): Promise<Response> {
+  const item = await deps.items.editContext(user.id, params.id!);
+  if (
+    !item ||
+    item.source !== 'calendar' ||
+    !item.google_active ||
+    item.status === 'deleted' ||
+    !item.google_calendar_id ||
+    !item.calendar_id
+  ) {
+    return json({ error: 'event not found' }, 404);
+  }
+  try {
+    await deleteEvent(
+      await deps.accessToken(user.id),
+      item.google_calendar_id,
+      item.google_event_id,
+      deps.fetchFn,
+    );
+  } catch (err) {
+    const refusal = googleRefusal(err);
+    if (refusal) return refusal;
+    throw err;
+  }
+  // Before day close the item drops out of the score (D1); after, it keeps its final status (D2).
+  const ctx = await deps.items.appContext(user.id);
+  const plan = planEvent(
+    { id: item.google_event_id, status: 'cancelled' },
+    item,
+    planContext(ctx, deps.now?.() ?? new Date()),
+  );
+  await deps.items.applyOps(item.calendar_id, plan.ops);
+  return json({ item_id: item.id });
+}
+
+/** Schedule a manual task: it becomes an event in Google and a calendar item in place. */
+async function scheduleTask(
+  req: Request,
+  user: AppUser,
+  deps: AppApiDeps,
+  params: Record<string, string>,
+): Promise<Response> {
+  const body = await req.json().catch(() => ({}));
+  if (
+    !isInstant(body.start) ||
+    !isInstant(body.end) ||
+    Date.parse(body.end) <= Date.parse(body.start)
+  ) {
+    return json({ error: 'start and end must be times, with end after start' }, 400);
+  }
+  const token = await deps.accessToken(user.id);
+  const p = await deps.items.schedulePrepare(user.id, params.id!, body.start, body.end);
+  try {
+    const event = await insertEvent(
+      token,
+      p.google_calendar_id,
+      {
+        id: p.google_event_id,
+        summary: p.summary,
+        start: new Date(body.start).toISOString(),
+        end: new Date(body.end).toISOString(),
+        timeZone: p.time_zone,
+        colorId: colorFor(p.color_rules, p.points),
+        privateProperties: appProperties(p.item_id, p.tags),
+      },
+      deps.fetchFn,
+    );
+    await deps.reschedule.commit(p.item_id, event.etag);
+    return json({ item_id: p.item_id });
+  } catch (err) {
+    await deps.items.scheduleAbort(p.item_id, p.previous_date, p.previous_minutes);
+    const refusal = googleRefusal(err);
+    if (refusal) return refusal;
+    throw err;
+  }
 }

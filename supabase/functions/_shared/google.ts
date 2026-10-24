@@ -1,6 +1,7 @@
 // Google OAuth and Calendar API over plain fetch (plan section 6: no SDK).
 // Never log tokens, event titles or notes (section 13).
 import { base64UrlToBytes } from './crypto.ts';
+import type { GEvent } from './sync/types.ts';
 
 export const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 export const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -262,12 +263,15 @@ export function appProperties(
   return { pt_app: '1', pt_item: itemId, pt_tags: join(tags), pt_deadlines: join(deadlines) };
 }
 
+/** An event as Google returns it after a write; the planner reads it like a synced one. */
+export type WrittenEvent = GEvent & { id: string; etag: string };
+
 export async function insertEvent(
   accessToken: string,
   calendarId: string,
   e: NewEvent,
   fetchFn: FetchFn = fetch,
-): Promise<{ id: string; etag: string }> {
+): Promise<WrittenEvent> {
   const res = await fetchFn(`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`, {
     method: 'POST',
     headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
@@ -281,8 +285,64 @@ export async function insertEvent(
     }),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new GoogleError(res.status, String(json.error?.status ?? 'insert_failed'));
-  return { id: json.id, etag: json.etag };
+  if (!res.ok) throw new GoogleError(res.status, errorReason(json, 'insert_failed'));
+  return json as WrittenEvent;
+}
+
+export interface EventPatch {
+  summary?: string;
+  /** null resets the event to the calendar's default colour. */
+  colorId?: string | null;
+  start?: { dateTime: string; timeZone: string };
+  end?: { dateTime: string; timeZone: string };
+}
+
+function eventUrl(calendarId: string, eventId: string): string {
+  return `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`;
+}
+
+/**
+ * Patches one event (for a recurring series, one instance only). With `ifMatch`, Google refuses
+ * (412) if the event changed since that etag, so a background write never overwrites a newer edit.
+ */
+export async function patchEvent(
+  accessToken: string,
+  calendarId: string,
+  eventId: string,
+  patch: EventPatch,
+  opts: { ifMatch?: string | null } = {},
+  fetchFn: FetchFn = fetch,
+): Promise<WrittenEvent> {
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${accessToken}`,
+    'content-type': 'application/json',
+  };
+  if (opts.ifMatch) headers['if-match'] = opts.ifMatch;
+  const res = await fetchFn(eventUrl(calendarId, eventId), {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(patch),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new GoogleError(res.status, errorReason(json, 'patch_failed'));
+  return json as WrittenEvent;
+}
+
+/** Deletes one event. One that is already gone counts as deleted. */
+export async function deleteEvent(
+  accessToken: string,
+  calendarId: string,
+  eventId: string,
+  fetchFn: FetchFn = fetch,
+): Promise<void> {
+  const res = await fetchFn(eventUrl(calendarId, eventId), {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok && res.status !== 404 && res.status !== 410) {
+    throw new GoogleError(res.status, errorReason(json, 'delete_failed'));
+  }
 }
 
 // Push channels (plan 8.6) ------------------------------------------------------------------------

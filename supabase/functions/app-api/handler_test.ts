@@ -3,7 +3,14 @@ import { defaultColorRules, setRulePoints } from '@mjolnir/domain';
 import { pkceChallenge } from '../_shared/crypto.ts';
 import { CALENDAR_API, ReconnectNeededError } from '../_shared/google.ts';
 import { fakeFetch } from '../_shared/testing.ts';
-import { type AppApiDeps, createAppApi, type PreparedReschedule, RpcError } from './handler.ts';
+import {
+  type AppApiDeps,
+  createAppApi,
+  type EditContext,
+  type PreparedReschedule,
+  RpcError,
+} from './handler.ts';
+import type { SyncOp } from '../_shared/sync/types.ts';
 
 const ITEM = '00000000-0000-4000-8000-000000000001';
 const EVENTS = `${CALENDAR_API}/calendars/me%40x.com/events`;
@@ -15,16 +22,50 @@ interface Setup {
   inbox?: unknown[];
   token?: () => Promise<string>;
   prepareError?: RpcError;
+  /** The item PATCH and DELETE act on; null means not found. */
+  item?: Partial<EditContext> | null;
+  /** Answers PATCH and DELETE on the event. */
+  eventWrite?: (req: { method: string; body: Record<string, unknown> }) => Response;
+  noCalendar?: boolean;
+  applyError?: RpcError;
 }
+
+const baseItem: EditContext = {
+  id: '00000000-0000-4000-8000-0000000000aa',
+  source: 'calendar',
+  google_event_id: 'ev1',
+  status: 'pending',
+  finalized: false,
+  logical_date: '2026-10-21',
+  start_at: '2026-10-21T12:30:00.000Z', // 18:00 in India
+  end_at: '2026-10-21T14:30:00.000Z',
+  points: 3,
+  raw_title: 'PR review #lfx',
+  planned_minutes: 120,
+  google_etag: '"e1"',
+  google_active: true,
+  calendar_id: 'cal-1',
+  google_calendar_id: 'me@x.com',
+  access_role: 'owner',
+};
 
 function setup(o: Setup = {}) {
   const log: string[] = [];
   const states: { userId: string; nonce: string; verifier: string }[] = [];
+  const applied: SyncOp[] = [];
   const fetchFn = fakeFetch({
     [EVENTS]: (req) =>
-      (o.google ?? (() => Response.json({ id: 'x', etag: '"e1"' })))(JSON.parse(req.body)),
+      (o.google ?? ((b) => Response.json({ etag: '"e1"', ...b })))(JSON.parse(req.body)),
+    [`${EVENTS}/ev1`]: (req) => {
+      log.push(`google ${req.method} ${req.body}`);
+      return (o.eventWrite ?? (() => new Response(null, { status: 204 })))({
+        method: req.method,
+        body: req.body ? JSON.parse(req.body) : {},
+      });
+    },
   });
   let n = 0;
+  let k = 0;
   const deps: AppApiDeps = {
     appUrl: 'http://app.test',
     cfg: { clientId: 'cid', clientSecret: 'cs', redirectUri: 'http://cb.test' },
@@ -44,6 +85,42 @@ function setup(o: Setup = {}) {
     },
     profile: () => Promise.resolve({ timezone: 'Asia/Kolkata', day_boundary_hour: 4 }),
     accessToken: o.token ?? (() => Promise.resolve('at')),
+    items: {
+      appContext: () =>
+        Promise.resolve({
+          timezone: 'Asia/Kolkata',
+          day_boundary_hour: 4,
+          include_all_day: false,
+          writeback_checkmark: true,
+          color_rules: rules,
+          calendar: o.noCalendar ? null : { id: 'cal-1', google_calendar_id: 'me@x.com' },
+        }),
+      editContext: () => Promise.resolve(o.item === null ? null : { ...baseItem, ...o.item }),
+      applyOps: (cal, ops) => {
+        log.push(`apply ${cal} ${ops.map((op) => op.op).join(',')}`);
+        if (o.applyError) return Promise.reject(o.applyError);
+        applied.push(...ops);
+        return Promise.resolve({ applied: ops.length, skipped: 0 });
+      },
+      schedulePrepare: (_u, itemId) =>
+        Promise.resolve({
+          item_id: itemId,
+          google_event_id: 'abc123abc123abc123abc123abc123ab',
+          google_calendar_id: 'me@x.com',
+          summary: 'Call bank #admin',
+          points: 1,
+          time_zone: 'Asia/Kolkata',
+          previous_date: '2026-10-21',
+          previous_minutes: null,
+          tags: ['admin'],
+          color_rules: rules,
+        }),
+      scheduleAbort: (itemId, date) => {
+        log.push(`schedule-abort ${itemId} ${date}`);
+        return Promise.resolve();
+      },
+      newItemId: () => `00000000-0000-4000-8000-00000000000${++k}`,
+    },
     reschedule: {
       prepare: (_u, itemId, start, end): Promise<PreparedReschedule> => {
         log.push(`prepare ${itemId} ${start} ${end}`);
@@ -70,7 +147,7 @@ function setup(o: Setup = {}) {
       },
     },
   };
-  return { api: createAppApi(deps), states, log, fetchFn };
+  return { api: createAppApi(deps), states, log, fetchFn, applied };
 }
 
 const url = (path: string) => `http://localhost/functions/v1/app-api${path}`;
@@ -266,3 +343,221 @@ Deno.test('dismiss all goes through the user RPC', async () => {
   });
   assertEquals((await api(post('/missed/bulk', { action: 'nope' }))).status, 400);
 });
+
+// Events made and changed in the app --------------------------------------------------------------
+
+const ITEM_ID = baseItem.id;
+const req = (method: string, path: string, body?: unknown) =>
+  new Request(url(path), { method, body: body === undefined ? undefined : JSON.stringify(body) });
+
+Deno.test(
+  'POST /items creates the event with the colour for its points and maps it to a new item',
+  async () => {
+    let sent: Record<string, unknown> = {};
+    const { api, applied } = setup({
+      google: (b) => {
+        sent = b;
+        return Response.json({
+          ...b,
+          etag: '"n1"',
+          status: 'confirmed',
+          updated: '2026-10-21T04:30:00Z',
+        });
+      },
+    });
+    const res = await api(
+      req('POST', '/items', {
+        title: 'Deep work #ml',
+        points: 3,
+        start: '2026-10-22T09:00:00+05:30',
+        end: '2026-10-22T11:00:00+05:30',
+      }),
+    );
+    assertEquals(res.status, 201);
+    const { item_id } = await res.json();
+    assertEquals(sent.id, item_id.replaceAll('-', ''));
+    assertEquals(sent.colorId, '11');
+    assertEquals(
+      (sent.extendedProperties as { private: Record<string, string> }).private.pt_item,
+      item_id,
+    );
+    const create = applied[0]!;
+    assertEquals(create.op, 'create');
+    if (create.op !== 'create') return;
+    assertEquals(
+      [create.item.id, create.item.title, create.item.points, create.item.logical_date],
+      [item_id, 'Deep work', 3, '2026-10-22'],
+    );
+    assertEquals(create.tags, ['ml']);
+  },
+);
+
+Deno.test('a calendar-default colour is written as no colour', async () => {
+  let sent: Record<string, unknown> = {};
+  const { api } = setup({ google: (b) => ((sent = b), Response.json({ ...b, etag: '"n1"' })) });
+  await api(
+    req('POST', '/items', {
+      title: 'Gym',
+      points: 1,
+      start: '2026-10-22T07:00:00Z',
+      end: '2026-10-22T08:00:00Z',
+    }),
+  );
+  assertEquals('colorId' in sent, false);
+});
+
+Deno.test('creating needs a writable calendar and a colour for the points', async () => {
+  const none = setup({ noCalendar: true });
+  assertEquals(
+    (
+      await none.api(
+        req('POST', '/items', {
+          title: 'x',
+          points: 1,
+          start: '2026-10-22T07:00:00Z',
+          end: '2026-10-22T08:00:00Z',
+        }),
+      )
+    ).status,
+    400,
+  );
+  const { api } = setup();
+  const res = await api(
+    req('POST', '/items', {
+      title: 'x',
+      points: 2,
+      start: '2026-10-22T07:00:00Z',
+      end: '2026-10-22T08:00:00Z',
+    }),
+  );
+  assertEquals(res.status, 400);
+  assertEquals((await res.json()).error, 'No colour is worth 2 points. Map one in Settings.');
+});
+
+Deno.test('if the webhook sync created the item first, creating still succeeds', async () => {
+  const { api } = setup({ applyError: new RpcError('23505', 'duplicate key') });
+  const res = await api(
+    req('POST', '/items', {
+      title: 'Gym',
+      points: 1,
+      start: '2026-10-22T07:00:00Z',
+      end: '2026-10-22T08:00:00Z',
+    }),
+  );
+  assertEquals(res.status, 201);
+});
+
+Deno.test(
+  'moving a started block to tomorrow from the app records a miss and a new item (M3)',
+  async () => {
+    // The block ran 08:00-10:00 in India; "now" is 10:00 and Google stamps the move 09:30.
+    const { api, log, applied } = setup({
+      item: { start_at: '2026-10-21T02:30:00.000Z', end_at: '2026-10-21T04:30:00.000Z' },
+      eventWrite: ({ body }) =>
+        Response.json({
+          id: 'ev1',
+          etag: '"e2"',
+          status: 'confirmed',
+          summary: 'PR review #lfx',
+          colorId: '11',
+          start: { dateTime: body.start && (body.start as { dateTime: string }).dateTime },
+          end: { dateTime: body.end && (body.end as { dateTime: string }).dateTime },
+          updated: '2026-10-21T04:00:00Z', // 09:30 in India, after the 08:00 start
+        }),
+    });
+    const res = await api(
+      req('PATCH', `/items/${ITEM_ID}`, {
+        start: '2026-10-22T18:00:00+05:30',
+        end: '2026-10-22T20:00:00+05:30',
+      }),
+    );
+    assertEquals(res.status, 200);
+    assertEquals(
+      log.filter((l) => l.startsWith('google'))[0],
+      'google PATCH {"start":{"dateTime":"2026-10-22T12:30:00.000Z","timeZone":"Asia/Kolkata"},"end":{"dateTime":"2026-10-22T14:30:00.000Z","timeZone":"Asia/Kolkata"}}',
+    );
+    const op = applied[0]!;
+    assertEquals(op.op, 'replace');
+    if (op.op !== 'replace') return;
+    assertEquals(op.old_patch.status, 'missed');
+    assertEquals((await res.json()).item_id, op.item.id);
+  },
+);
+
+Deno.test('renaming a done item keeps its ✓; repointing changes its colour', async () => {
+  const done = setup({
+    item: { status: 'done' },
+    eventWrite: ({ body }) => Response.json({ ...baseEvent(), ...body }),
+  });
+  await done.api(req('PATCH', `/items/${ITEM_ID}`, { title: 'Code review #lfx' }));
+  assertEquals(
+    done.log.find((l) => l.startsWith('google')),
+    'google PATCH {"summary":"✓ Code review #lfx"}',
+  );
+  const re = setup({ eventWrite: ({ body }) => Response.json({ ...baseEvent(), ...body }) });
+  await re.api(req('PATCH', `/items/${ITEM_ID}`, { points: 1 }));
+  assertEquals(
+    re.log.find((l) => l.startsWith('google')),
+    'google PATCH {"colorId":null}',
+  );
+});
+
+function baseEvent() {
+  return {
+    id: 'ev1',
+    etag: '"e2"',
+    status: 'confirmed',
+    summary: 'PR review #lfx',
+    colorId: '11',
+    start: { dateTime: '2026-10-21T18:00:00+05:30' },
+    end: { dateTime: '2026-10-21T20:00:00+05:30' },
+    updated: '2026-10-21T04:30:00Z',
+  };
+}
+
+Deno.test('deleting from the app deletes in Google, then follows D1', async () => {
+  const { api, log, applied } = setup();
+  assertEquals((await api(req('DELETE', `/items/${ITEM_ID}`))).status, 200);
+  assertEquals(
+    log.find((l) => l.startsWith('google')),
+    'google DELETE ',
+  );
+  const op = applied[0]!;
+  assertEquals(op.op === 'update' && op.patch.status, 'deleted');
+});
+
+Deno.test('a read-only calendar is reported plainly; a missing item is 404', async () => {
+  const ro = setup({
+    eventWrite: () =>
+      Response.json({ error: { code: 403, errors: [{ reason: 'forbidden' }] } }, { status: 403 }),
+  });
+  const res = await ro.api(req('DELETE', `/items/${ITEM_ID}`));
+  assertEquals(res.status, 403);
+  assertEquals((await res.json()).error, 'This calendar is read-only in Google.');
+  const gone = setup({ item: null });
+  assertEquals((await gone.api(req('PATCH', `/items/${ITEM_ID}`, { points: 3 }))).status, 404);
+});
+
+Deno.test(
+  'scheduling a task inserts its event and commits; a Google failure turns it back',
+  async () => {
+    const ok = setup({ google: (b) => Response.json({ ...b, etag: '"s1"' }) });
+    const res = await ok.api(
+      req('POST', `/items/${ITEM_ID}/schedule`, {
+        start: '2026-10-22T10:00:00Z',
+        end: '2026-10-22T11:00:00Z',
+      }),
+    );
+    assertEquals(res.status, 200);
+    assertEquals(ok.log.at(-1), `commit ${ITEM_ID} "s1"`);
+    const bad = setup({ google: () => new Response('no', { status: 500 }) });
+    const failed = await bad.api(
+      req('POST', `/items/${ITEM_ID}/schedule`, {
+        start: '2026-10-22T10:00:00Z',
+        end: '2026-10-22T11:00:00Z',
+      }),
+    );
+    assertEquals(failed.status, 502);
+    assertEquals(bad.log.at(-1), `schedule-abort ${ITEM_ID} 2026-10-21`);
+  },
+);

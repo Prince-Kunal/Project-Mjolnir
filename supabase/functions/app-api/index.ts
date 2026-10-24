@@ -1,9 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@mjolnir/db-types';
+import type { Database, Json } from '@mjolnir/db-types';
 import { decryptToken, encryptToken, importTokenKey } from '../_shared/crypto.ts';
 import { adminClient, appUrl, googleConfig, requireEnv } from '../_shared/env.ts';
 import { accessTokenFor } from '../_shared/google.ts';
-import { createAppApi, type PreparedReschedule, RpcError } from './handler.ts';
+import {
+  type AppContext,
+  createAppApi,
+  type EditContext,
+  type PreparedReschedule,
+  type PreparedSchedule,
+  RpcError,
+} from './handler.ts';
 
 const admin = adminClient();
 const key = await importTokenKey(requireEnv('TOKEN_ENCRYPTION_KEY'));
@@ -89,6 +96,55 @@ Deno.serve(
           );
         },
       }),
+    items: {
+      async appContext(userId) {
+        const data = check(
+          'svc_app_context',
+          await admin.rpc('svc_app_context', { p_user_id: userId }),
+        );
+        return data as unknown as AppContext;
+      },
+      async editContext(userId, itemId) {
+        const data = check(
+          'svc_edit_context',
+          await admin.rpc('svc_edit_context', { p_user_id: userId, p_item_id: itemId }),
+        );
+        return (data as unknown as EditContext) ?? null;
+      },
+      async applyOps(calendarId, ops) {
+        const data = check(
+          'svc_apply_app_ops',
+          await admin.rpc('svc_apply_app_ops', {
+            p_calendar_id: calendarId,
+            p_ops: ops as unknown as Json,
+          }),
+        );
+        return data as unknown as { applied: number; skipped: number };
+      },
+      async schedulePrepare(userId, itemId, start, end) {
+        const data = check(
+          'svc_schedule_prepare',
+          await admin.rpc('svc_schedule_prepare', {
+            p_user_id: userId,
+            p_item_id: itemId,
+            p_start: start,
+            p_end: end,
+          }),
+        );
+        return data as unknown as PreparedSchedule;
+      },
+      async scheduleAbort(itemId, date, minutes) {
+        check(
+          'svc_schedule_abort',
+          await admin.rpc('svc_schedule_abort', {
+            p_item_id: itemId,
+            p_date: date as string,
+            p_minutes: minutes as number,
+          }),
+        );
+      },
+      newItemId: () => crypto.randomUUID(),
+    },
     reschedule: {
       async prepare(userId, itemId, start, end) {
         const data = check(
