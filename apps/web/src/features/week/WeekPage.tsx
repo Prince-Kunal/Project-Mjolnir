@@ -2,6 +2,7 @@ import { addDays, bandFor, successRate, weekKey } from '@mjolnir/domain';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Loading, Notice } from '../../components/ui.tsx';
 import { BAND_COLOR, BAND_LABEL } from '../../lib/bands.ts';
+import { YearHeatmap } from './YearHeatmap.tsx';
 import { type DayRow, type MonthRow, useDay, useDaysRange, useMonths } from '../../lib/day.ts';
 import { formatDayMonth, formatWeekday } from '../../lib/format.ts';
 import { useProfile } from '../../lib/queries.ts';
@@ -217,6 +218,7 @@ function MonthsTable({ today }: { today: string }) {
         <p className="text-sm font-medium tabular-nums">{year}</p>
         <Arrow dir="right" label="Next year" onClick={() => go(year + 1)} />
       </div>
+      <YearHeatmap year={year} />
       {isLoading ? (
         <Loading />
       ) : error ? (

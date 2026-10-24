@@ -190,7 +190,7 @@ select public.svc_apply_app_ops('c0000000-0000-0000-0000-000000000001', jsonb_bu
     'logical_date', current_date + 2, 'start_at', (current_date + 2) + time '07:00', 'end_at', (current_date + 2) + time '07:30',
     'status', 'pending', 'google_event_id', 'ev13', 'color_key', 'default'))));
 select is(
-  (select array_agg(item_id::text || ':' || state) from public.suggestions s join public.tags t on t.id = s.tag_id where t.name = 'lfx'),
+  (select array_agg(item_id::text || ':' || state) from public.suggestions s where s.tag_id = '70000000-0000-0000-0000-000000000001'),
   array['a0000000-0000-0000-0000-000000000009:open'],
   '"read lfx notes" is suggested for #lfx; "flfx review" and an already tagged "lfx sync" are not'
 );
