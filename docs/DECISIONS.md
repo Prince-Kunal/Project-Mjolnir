@@ -73,3 +73,18 @@ Choices the plan does not cover, one line each, with the reason. Newest at the b
 - "Reschedule all to tomorrow, same times" keeps each block's local time on the logical day after today (wall-clock, so 18:00 stays 18:00 across DST).
 - Private extended properties: `pt_tags` and `pt_deadlines` keep whole values under Google's 1024-character limit (checked 2026-10-20).
 - The week table counts the week rate and "days counted" over closed days only; today shows a live score marked as not yet judged.
+
+## Phase 5
+
+- Hosted project `vkgzaxsxobzrummlrmrb` in ap-south-1 (Mumbai), in the owner's personal organisation. Web app on classic Cloudflare Pages as `project-mjolnir` (https://project-mjolnir.pages.dev); wrangler 4 now routes new Pages projects to Workers by default, so the project was created with `--force` once.
+- Deploys run from the laptop (`pnpm deploy:db`, `pnpm deploy:functions`, `pnpm deploy:web`); CI deploys can come later with a Cloudflare API token.
+- Production web settings live in the committed `apps/web/.env.production`: the publishable key is meant for browsers.
+- Hosted auth settings (site URL, redirect list, Google provider) were set with the Management API, not `supabase config push`, which would also have pushed local development defaults (email confirmations and MFA off).
+- Production secrets stay out of git: `supabase/.env.production` (database password and URL) and `supabase/.env.functions.production` (function secrets), with a token encryption key and worker secret separate from local ones.
+- Checked on deploy: `supabase functions deploy` bundles `packages/domain` and `packages/db-types` through the import map (plan section 6, **verify**).
+- Checked: `app-api` keeps `verify_jwt = true`; the gateway accepts the hosted project's ES256 user tokens.
+- Checked 2026-10-21: Google push needs only HTTPS with a valid certificate (no domain verification), channels have no auto-renewal, and the first `sync` message can be ignored. Channels ask for 7 days; the hourly job renews them 24 hours before expiry by creating the new channel first, then stopping the old one.
+- Channel work goes through a `jobs` queue drained by `worker`, and is queued only when Vault holds `google_webhook_url`, so local development keeps polling and never calls `events.watch`.
+- A reconcile keeps the incremental sync token, so changes outside its window still reach the next incremental sync.
+- Checked: refresh tokens issued while the OAuth app is in Testing expire after 7 days. The app is published to Production unverified, which shows Google's "unverified app" screen and caps it at 100 new users.
+- Backups are encrypted with `age` to a key whose private half lives only at `~/.config/mjolnir/backup-age-key.txt` on the owner's laptop; artifacts are kept 90 days. Restore: `age -d -i <key> mjolnir-<date>.tar.gz.age | tar xz`, then `psql` the three files in order roles, schema, data.

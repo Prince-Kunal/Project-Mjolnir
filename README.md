@@ -102,6 +102,24 @@ select * from private.dead_jobs;             -- jobs that failed 5 times
 select private.queue_sync('<calendar id>', 'incremental');  -- sync one calendar now
 ```
 
+## Deploy
+
+The app runs on a hosted Supabase project (`vkgzaxsxobzrummlrmrb`, Mumbai) and Cloudflare Pages
+(https://project-mjolnir.pages.dev). From a laptop signed in to both CLIs:
+
+```sh
+pnpm deploy:db         # apply new migrations to the hosted database
+pnpm deploy:functions  # deploy all Edge Functions
+pnpm deploy:web        # build with apps/web/.env.production and publish to Pages
+```
+
+Function secrets come from `supabase/.env.functions.production` (gitignored):
+`supabase secrets set --env-file supabase/.env.functions.production --project-ref vkgzaxsxobzrummlrmrb`.
+
+GitHub Actions keep the free project awake every 3 days and back it up weekly, encrypted to the
+owner's `age` key. They need the repo secrets `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
+`SUPABASE_DB_URL` and `BACKUP_AGE_RECIPIENT`.
+
 ## Database changes
 
 Every schema change is a migration file in `supabase/migrations/`, never an edit in the dashboard.
