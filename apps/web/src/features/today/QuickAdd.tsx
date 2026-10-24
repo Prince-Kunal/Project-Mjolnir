@@ -10,6 +10,8 @@ interface Props {
   /** Day for a task when the text names none: the day being viewed. */
   defaultDate: string;
   autoFocus?: boolean;
+  /** Text to start from, such as a deadline's tag. */
+  initialText?: string;
   onDone?(): void;
 }
 
@@ -17,9 +19,9 @@ interface Props {
  * Quick add (section 5): `PR review tomorrow 6pm 2h #lfx !2`. With a time it becomes a Google
  * Calendar event coloured for its points; otherwise a task for the named day.
  */
-export function QuickAdd({ defaultDate, autoFocus, onDone }: Props) {
+export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: Props) {
   const { data: profile } = useProfile();
-  const [text, setText] = useState('');
+  const [text, setText] = useState(initialText);
   const [points, setPoints] = useState<1 | 2 | 3>(1);
   const createEvent = useCreateEvent();
   const createTask = useCreateTask();

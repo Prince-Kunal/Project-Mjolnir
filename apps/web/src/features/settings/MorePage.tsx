@@ -18,6 +18,7 @@ import { ColorMap } from './ColorMap.tsx';
 import { DaySettings, type DayValues } from './DaySettings.tsx';
 import { GoogleConnectCard } from './GoogleConnectCard.tsx';
 import { HabitsEditor } from './HabitsEditor.tsx';
+import { TagsEditor } from './TagsEditor.tsx';
 
 export function MorePage() {
   const location = useLocation();
@@ -40,6 +41,12 @@ export function MorePage() {
       </Card>
       <Card title="Areas" description="Top-level categories, such as Rich, Muscular, Intelligent.">
         <AreasEditor />
+      </Card>
+      <Card
+        title="Tags"
+        description="Made by #tags in titles or the item dropdown. A tag's area applies to its items."
+      >
+        <TagsEditor />
       </Card>
       <ColoursSettings />
       <DaySettingsCard />

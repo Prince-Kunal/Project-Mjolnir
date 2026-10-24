@@ -25,6 +25,7 @@ const base: DayItem = {
   color_key: '11',
   calendar_color: '#9fe1e7',
   tags: [{ id: 't1', name: 'lfx', source: 'hashtag' }],
+  deadlines: [],
 };
 
 function renderRow(over: Partial<DayItem> = {}, now = Date.parse('2026-10-20T13:00:00Z')) {

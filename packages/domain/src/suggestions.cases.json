@@ -8,9 +8,19 @@
     { "name": "at the start", "title": "lfx: weekly sync", "tag": "lfx", "match": true },
     { "name": "at the end", "title": "notes for lfx", "tag": "lfx", "match": true },
     { "name": "the whole title", "title": "gym", "tag": "gym", "match": true },
-    { "name": "followed by punctuation", "title": "after gym, stretch", "tag": "gym", "match": true },
+    {
+      "name": "followed by punctuation",
+      "title": "after gym, stretch",
+      "tag": "gym",
+      "match": true
+    },
     { "name": "in parentheses", "title": "PR (lfx)", "tag": "lfx", "match": true },
-    { "name": "a hyphenated word is a different tag", "title": "lfx-2 planning", "tag": "lfx", "match": false },
+    {
+      "name": "a hyphenated word is a different tag",
+      "title": "lfx-2 planning",
+      "tag": "lfx",
+      "match": false
+    },
     { "name": "a hyphenated tag", "title": "lfx-2 planning", "tag": "lfx-2", "match": true },
     { "name": "an underscore joins words", "title": "lfx_notes", "tag": "lfx", "match": false },
     { "name": "next to a digit", "title": "lfx2 planning", "tag": "lfx", "match": false },

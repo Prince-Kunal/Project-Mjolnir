@@ -27,6 +27,7 @@ export interface DayItem {
   color_key: string | null;
   calendar_color: string | null;
   tags: { id: string; name: string; source: string }[];
+  deadlines: { id: string; title: string }[];
 }
 
 export interface StreakInfo {
@@ -81,7 +82,16 @@ export const backlogKey = ['backlog'] as const;
 export const missedKey = ['missed'] as const;
 
 /** Everything derived from items: refetched after any change to them. */
-const ITEM_VIEWS = [['day'], backlogKey, missedKey, ['days'], ['months'], ['calendar']] as const;
+const ITEM_VIEWS = [
+  ['day'],
+  backlogKey,
+  missedKey,
+  ['days'],
+  ['months'],
+  ['calendar'],
+  ['deadlines'],
+  ['unassigned'],
+] as const;
 
 function invalidateItemViews(qc: QueryClient) {
   for (const queryKey of ITEM_VIEWS) void qc.invalidateQueries({ queryKey });
@@ -233,6 +243,16 @@ export function useItemsRealtime() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'day_summaries', filter: `user_id=eq.${userId}` },
+        refresh,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'deadlines', filter: `user_id=eq.${userId}` },
+        refresh,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'suggestions', filter: `user_id=eq.${userId}` },
         refresh,
       )
       .subscribe((status) => {

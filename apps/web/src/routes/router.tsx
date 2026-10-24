@@ -5,7 +5,9 @@ import { RequireAuth, RequireOnboarded } from '../features/auth/guards.tsx';
 import { SignInPage } from '../features/auth/SignInPage.tsx';
 import { AnalyticsPage } from '../features/analytics/AnalyticsPage.tsx';
 import { CalendarPage } from '../features/calendar/CalendarPage.tsx';
+import { DeadlineDetailPage } from '../features/deadlines/DeadlineDetailPage.tsx';
 import { DeadlinesPage } from '../features/deadlines/DeadlinesPage.tsx';
+import { UnassignedPage } from '../features/deadlines/UnassignedPage.tsx';
 import { MissedPage } from '../features/missed/MissedPage.tsx';
 import { OnboardingPage } from '../features/onboarding/OnboardingPage.tsx';
 import { MorePage } from '../features/settings/MorePage.tsx';
@@ -19,6 +21,8 @@ export const appRoutes: RouteObject[] = [
   { path: 'week', element: <WeekPage /> },
   { path: 'missed', element: <MissedPage /> },
   { path: 'deadlines', element: <DeadlinesPage /> },
+  { path: 'deadlines/:id', element: <DeadlineDetailPage /> },
+  { path: 'unassigned', element: <UnassignedPage /> },
   { path: 'analytics', element: <AnalyticsPage /> },
   { path: 'more', element: <MorePage /> },
   { path: '*', element: <NotFound /> },

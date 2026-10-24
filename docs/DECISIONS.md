@@ -99,3 +99,16 @@ Choices the plan does not cover, one line each, with the reason. Newest at the b
 - Quick add is parsed in the browser with `chrono-node` against the user's profile timezone, independent of the device's.
 - Calendar tab (owner request, not in section 11): Day, Week and Month views in Google Calendar's style, with 0-point blocks shown (unlike Today's checklist), drag to create, drag to move (mouse; touch taps), and the item sheet on click. Items now store their Google colour (`color_key`); items synced earlier get it on the next full sync.
 - The calendar lays blocks out by local calendar date (Google's view), while Today and the tables stay on logical dates.
+
+## Phase 7
+
+- Deadline stats and warnings are computed in SQL (`deadline_stats`), not in `packages/domain`, because Phase 8's deadline push warnings need them in the database. They are tested in pgTAP.
+- Counting (3.9): deleted and 0-point items never count. A direct link counts whatever the item's date; a tag counts only inside the window. An item with several of a deadline's tags counts once. Sessions are "upcoming" when pending and not yet started (a task with no time counts while its day has not passed); backlog tasks are planned but not upcoming. Hours done use actual minutes, falling back to planned.
+- "No sessions scheduled" shows from the due day back to `deadline_warning_days` before it; once overdue, only "Overdue" shows. Done and Dropped deadlines have no warnings.
+- The start date defaults to the creation day, or the due date if that is earlier. Marking Done stamps `completed_at` (the window then ends on that day); reopening clears it.
+- The item dropdown writes through a new RPC, `set_item_links(item, tags, deadlines)`, which replaces the item's whole set of explicit links. This replaces the plan's tag and deadline keys on `update_item_local`. Hashtag links stay, since only the title can remove them; unknown tags are created.
+- Link changes queue a `links` job on `google_writes`, which rewrites `pt_tags` (every linked tag) and `pt_deadlines` with If-Match, like the ✓ write. The sync reads these properties only when it creates a new item for an event (an event moved between synced calendars), and then only for the user's existing tags and deadlines. After that, the database owns links.
+- Rescheduled copies keep their deadline links, as they keep their tags (a trigger on `rescheduled_from_id`).
+- Suggestions: a "whole word" is a run of letters, digits, `_` and `-`, so "lfx-2" and "lfx_notes" do not name `lfx`. The rule lives in `suggestions.ts` and `private.title_has_tag`, sharing one case table. Suggestions are only for untagged calendar events and manual tasks that are still tasks. They are rechecked whenever a title is set, and a new tag is suggested for untagged items from the last 30 days. Link adds the tag (source `suggestion`) and leaves the item's other suggestions open; Dismiss is remembered.
+- The Unassigned tray is reached from the Deadlines page, with a count badge, rather than adding a tab.
+- Tags can be given an area or deleted under More. They cannot be renamed, since a title that still says the old name would bring it back.

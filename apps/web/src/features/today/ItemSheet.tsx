@@ -15,6 +15,7 @@ import {
 } from '../../lib/day.ts';
 import { formatMinutes, formatTime, googleEventUrl } from '../../lib/format.ts';
 import { useAreas } from '../../lib/queries.ts';
+import { LinksEditor } from '../deadlines/LinksEditor.tsx';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -181,19 +182,9 @@ function ItemDetails({
         <dd className="capitalize">
           {item.finalized ? `${item.status} (day closed)` : item.status}
         </dd>
-        {item.tags.length > 0 && (
-          <>
-            <dt className="text-muted">Tags</dt>
-            <dd className="flex flex-wrap gap-1">
-              {item.tags.map((t) => (
-                <span key={t.id} className="rounded bg-surface-2 px-1.5 py-px text-xs">
-                  #{t.name}
-                </span>
-              ))}
-            </dd>
-          </>
-        )}
       </dl>
+
+      <LinksEditor item={item} />
 
       <div>
         <p className="mb-1.5 font-medium">Points</p>
