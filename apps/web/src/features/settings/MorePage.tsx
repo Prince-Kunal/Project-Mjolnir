@@ -18,6 +18,7 @@ import { ColorMap } from './ColorMap.tsx';
 import { DaySettings, type DayValues } from './DaySettings.tsx';
 import { GoogleConnectCard } from './GoogleConnectCard.tsx';
 import { HabitsEditor } from './HabitsEditor.tsx';
+import { NotificationsCard } from './NotificationsCard.tsx';
 import { TagsEditor } from './TagsEditor.tsx';
 
 export function MorePage() {
@@ -67,6 +68,7 @@ export function MorePage() {
       </Card>
       <ColoursSettings />
       <DaySettingsCard />
+      <NotificationsCard />
       <AccountCard />
     </div>
   );

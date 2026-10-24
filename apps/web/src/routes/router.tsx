@@ -3,7 +3,6 @@ import { AppShell } from '../components/AppShell.tsx';
 import { GoogleConnectedPage } from '../features/auth/GoogleConnectedPage.tsx';
 import { RequireAuth, RequireOnboarded } from '../features/auth/guards.tsx';
 import { SignInPage } from '../features/auth/SignInPage.tsx';
-import { AnalyticsPage } from '../features/analytics/AnalyticsPage.tsx';
 import { CalendarPage } from '../features/calendar/CalendarPage.tsx';
 import { DeadlineDetailPage } from '../features/deadlines/DeadlineDetailPage.tsx';
 import { DeadlinesPage } from '../features/deadlines/DeadlinesPage.tsx';
@@ -25,7 +24,14 @@ export const appRoutes: RouteObject[] = [
   { path: 'deadlines', element: <DeadlinesPage /> },
   { path: 'deadlines/:id', element: <DeadlineDetailPage /> },
   { path: 'unassigned', element: <UnassignedPage /> },
-  { path: 'analytics', element: <AnalyticsPage /> },
+  // Charts (Recharts) load only with this page.
+  {
+    path: 'analytics',
+    lazy: () =>
+      import('../features/analytics/AnalyticsPage.tsx').then((m) => ({
+        Component: m.AnalyticsPage,
+      })),
+  },
   { path: 'plan', element: <PlanTomorrowPage /> },
   { path: 'review', element: <SundayReviewPage /> },
   { path: 'more', element: <MorePage /> },

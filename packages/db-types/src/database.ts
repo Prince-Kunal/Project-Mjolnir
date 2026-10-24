@@ -265,13 +265,26 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_url": string | null,"created_at": string,"day_boundary_hour": number,"deadline_warning_days": number,"evening_reminder_time": string,"google_item_type": string,"id": string,"include_all_day": boolean,"morning_prompt_time": string,"name": string | null,"onboarded_at": string | null,"timezone": string,"week_start": number,"writeback_checkmark": boolean
+                    "avatar_url": string | null,"created_at": string,"day_boundary_hour": number,"deadline_warning_days": number,"evening_reminder_time": string,"google_item_type": string,"id": string,"include_all_day": boolean,"morning_prompt_time": string,"name": string | null,"notify_deadlines": boolean,"notify_evening": boolean,"notify_morning": boolean,"onboarded_at": string | null,"timezone": string,"week_start": number,"writeback_checkmark": boolean
                   }
                   Insert: {
-                    "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"id": string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
+                    "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"id": string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"notify_deadlines"?: boolean,"notify_evening"?: boolean,"notify_morning"?: boolean,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
                   }
                   Update: {
-                    "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"id"?: string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
+                    "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"id"?: string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"notify_deadlines"?: boolean,"notify_evening"?: boolean,"notify_morning"?: boolean,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"push_subscriptions": {
+                  Row: {
+                    "auth": string,"created_at": string,"endpoint": string,"id": string,"p256dh": string,"user_agent": string | null,"user_id": string
+                  }
+                  Insert: {
+                    "auth": string,"created_at"?: string,"endpoint": string,"id"?: string,"p256dh": string,"user_agent"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"p256dh"?: string,"user_agent"?: string | null,"user_id"?: string
                   }
                   Relationships: [
                     
@@ -440,8 +453,14 @@ isOneToOne: false
 "reschedule_manual":
 { Args: { "p_date": string,"p_id": string }; Returns: Json
                            },
+"save_push_subscription":
+{ Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_user_agent"?: string }; Returns: undefined
+                           },
 "score_band":
 { Args: { "p_rate": number }; Returns: string
+                           },
+"send_test_push":
+{ Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "set_item_links":
 { Args: { "p_deadlines": (string)[],"p_id": string,"p_tags": (string)[] }; Returns: Json
@@ -491,6 +510,12 @@ isOneToOne: false
                            },
 "svc_mark_reconnect_needed":
 { Args: { "p_user_id": string }; Returns: undefined
+                           },
+"svc_push_gone":
+{ Args: { "p_endpoint": string }; Returns: undefined
+                           },
+"svc_push_subscriptions":
+{ Args: { "p_user_id": string }; Returns: Json
                            },
 "svc_queue_dead":
 { Args: { "p_error": string,"p_message": Json,"p_msg_id": number,"p_queue": string }; Returns: undefined

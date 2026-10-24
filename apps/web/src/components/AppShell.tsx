@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useForegroundRefresh, useItemsRealtime } from '../lib/day.ts';
 import { NAV } from '../lib/nav.ts';
+import { refreshPush } from '../lib/push.ts';
 import { QuickAddDialog } from '../features/today/QuickAddDialog.tsx';
 import { Toaster } from './Toast.tsx';
 
@@ -10,6 +12,10 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 export function AppShell() {
   useItemsRealtime();
   useForegroundRefresh();
+  // Browsers can rotate a push subscription; re-save it once per app start.
+  useEffect(() => {
+    refreshPush().catch(() => {});
+  }, []);
   return (
     <div className="flex h-full">
       <aside className="hidden w-56 shrink-0 flex-col gap-1 border-r border-border bg-surface p-4 md:flex">

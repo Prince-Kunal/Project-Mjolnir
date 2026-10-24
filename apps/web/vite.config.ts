@@ -11,6 +11,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
+      // Push and notification-click handlers live in public/push-sw.js.
+      workbox: { importScripts: ['push-sw.js'] },
       manifest: {
         name: 'Project Mjolnir',
         short_name: 'Mjolnir',

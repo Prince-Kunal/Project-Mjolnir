@@ -24,6 +24,8 @@ import {
 } from '../_shared/crypto.ts';
 import { adminClient, googleConfig, requireEnv } from '../_shared/env.ts';
 import { accessTokenFor } from '../_shared/google.ts';
+import { type PushDeps, type PushJob, runPush } from '../_shared/push.ts';
+import { createSender } from '../_shared/webpush.ts';
 import { type Lease, type SyncStore, syncSource } from '../_shared/sync/run.ts';
 import type { ItemSnapshot } from '../_shared/sync/types.ts';
 import { BadMessage, createWorker, type QueueMessage } from './handler.ts';
@@ -198,6 +200,26 @@ const writes: WriteDeps = {
   },
 };
 
+let sendPush: PushDeps['send'] | null = null;
+
+const push: PushDeps = {
+  async devices(userId) {
+    const data = check(
+      'svc_push_subscriptions',
+      await admin.rpc('svc_push_subscriptions', { p_user_id: userId }),
+    );
+    return (data ?? []) as unknown as Awaited<ReturnType<PushDeps['devices']>>;
+  },
+  // VAPID keys are read on the first push, so the worker runs without them until push is set up.
+  send(device, payload, opts) {
+    sendPush ??= createSender(requireEnv('VAPID_KEYS'), requireEnv('VAPID_SUBJECT'));
+    return sendPush(device, payload, opts);
+  },
+  async gone(endpoint) {
+    check('svc_push_gone', await admin.rpc('svc_push_gone', { p_endpoint: endpoint }));
+  },
+};
+
 const handler = createWorker(
   {
     secret: requireEnv('WORKER_SECRET'),
@@ -242,6 +264,9 @@ const handler = createWorker(
       jobs: (m) => {
         if (m.kind === 'watch') return runWatch(m as unknown as WatchJob, channels);
         if (m.kind === 'stop_channel') return runStop(m as unknown as StopJob, channels);
+        if (m.kind === 'push' && typeof m.user_id === 'string') {
+          return runPush(m as unknown as PushJob, push);
+        }
         throw new BadMessage(`unknown kind ${String(m.kind)}`);
       },
     },
