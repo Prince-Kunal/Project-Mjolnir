@@ -2,6 +2,7 @@
 // are checked against the same cases as the TypeScript ones (plan section 6):
 //   scoring.cases.json  -> supabase/tests/03_scoring_cases.test.sql
 //   streaks.cases.json  -> supabase/tests/05_streak_cases.test.sql
+//   suggestions.cases.json -> supabase/tests/10_suggestion_cases.test.sql
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const root = new URL('..', import.meta.url);
@@ -87,5 +88,18 @@ function streaks() {
   write('05_streak_cases.test.sql', lines);
 }
 
+function suggestions() {
+  const { cases } = read('suggestions.cases.json');
+  const lines = [...header('suggestions.cases.json'), `select plan(${cases.length});`, ''];
+  for (const c of cases) {
+    lines.push(
+      `select is(private.title_has_tag(${q(c.title)}, ${q(c.tag)}), ${c.match}, ${q(c.name)});`,
+    );
+  }
+  lines.push('', 'select * from finish();', 'rollback;', '');
+  write('10_suggestion_cases.test.sql', lines);
+}
+
 scoring();
 streaks();
+suggestions();

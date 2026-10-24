@@ -88,6 +88,50 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"deadline_tags": {
+                  Row: {
+                    "deadline_id": string,"tag_id": string
+                  }
+                  Insert: {
+                    "deadline_id": string,"tag_id": string
+                  }
+                  Update: {
+                    "deadline_id"?: string,"tag_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deadline_tags_deadline_id_fkey"
+      columns: ["deadline_id"]
+isOneToOne: false
+      referencedRelation: "deadlines"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "deadline_tags_tag_id_fkey"
+      columns: ["tag_id"]
+isOneToOne: false
+      referencedRelation: "tags"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"deadlines": {
+                  Row: {
+                    "area_id": string | null,"completed_at": string | null,"created_at": string,"due_date": string,"id": string,"notes": string,"progress_pct": number,"start_date": string,"status": string,"target_minutes": number | null,"target_sessions": number | null,"title": string,"updated_at": string,"user_id": string
+                  }
+                  Insert: {
+                    "area_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"due_date": string,"id"?: string,"notes"?: string,"progress_pct"?: number,"start_date": string,"status"?: string,"target_minutes"?: number | null,"target_sessions"?: number | null,"title": string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Update: {
+                    "area_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"due_date"?: string,"id"?: string,"notes"?: string,"progress_pct"?: number,"start_date"?: string,"status"?: string,"target_minutes"?: number | null,"target_sessions"?: number | null,"title"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "deadlines_area_id_fkey"
+      columns: ["area_id"]
+isOneToOne: false
+      referencedRelation: "areas"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"habits": {
                   Row: {
                     "active": boolean,"archived_at": string | null,"area_id": string | null,"created_at": string,"id": string,"points": number,"title": string,"user_id": string,"weekdays": number
@@ -104,6 +148,31 @@ export type Database = {
       columns: ["area_id"]
 isOneToOne: false
       referencedRelation: "areas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"item_deadlines": {
+                  Row: {
+                    "deadline_id": string,"item_id": string
+                  }
+                  Insert: {
+                    "deadline_id": string,"item_id": string
+                  }
+                  Update: {
+                    "deadline_id"?: string,"item_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "item_deadlines_deadline_id_fkey"
+      columns: ["deadline_id"]
+isOneToOne: false
+      referencedRelation: "deadlines"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "item_deadlines_item_id_fkey"
+      columns: ["item_id"]
+isOneToOne: false
+      referencedRelation: "items"
       referencedColumns: ["id"]
     }
                   ]
@@ -220,6 +289,31 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"suggestions": {
+                  Row: {
+                    "created_at": string,"id": string,"item_id": string,"state": string,"tag_id": string,"user_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"item_id": string,"state"?: string,"tag_id": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"item_id"?: string,"state"?: string,"tag_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "suggestions_item_id_fkey"
+      columns: ["item_id"]
+isOneToOne: false
+      referencedRelation: "items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "suggestions_tag_id_fkey"
+      columns: ["tag_id"]
+isOneToOne: false
+      referencedRelation: "tags"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"tags": {
                   Row: {
                     "area_id": string | null,"created_at": string,"id": string,"name": string,"user_id": string
@@ -258,7 +352,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "backlog":
+            "accept_suggestion":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"backlog":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
 "busy_blocks":
@@ -279,6 +376,9 @@ isOneToOne: false
 "days_range":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
                            },
+"deadline_stats":
+{ Args: { "p_id"?: string }; Returns: Json
+                           },
 "delete_manual_task":
 { Args: { "p_id": string }; Returns: undefined
                            },
@@ -286,6 +386,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "dismiss_missed":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"dismiss_suggestion":
 { Args: { "p_id": string }; Returns: undefined
                            },
 "google_connection":
@@ -314,6 +417,9 @@ isOneToOne: false
                            },
 "score_band":
 { Args: { "p_rate": number }; Returns: string
+                           },
+"set_item_links":
+{ Args: { "p_deadlines": (string)[],"p_id": string,"p_tags": (string)[] }; Returns: Json
                            },
 "streak":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -351,6 +457,9 @@ isOneToOne: false
 { Args: { "p_user_id": string }; Returns: {
               "access_expires_at": string,"access_token_enc": string,"email": string,"google_sub": string,"refresh_token_enc": string,"scopes": (string)[],"status": string
             }[]
+                           },
+"svc_item_links":
+{ Args: { "p_item_id": string }; Returns: Json
                            },
 "svc_mark_push_unsupported":
 { Args: { "p_calendar_id": string,"p_reason": string }; Returns: undefined
@@ -425,6 +534,9 @@ isOneToOne: false
                            },
 "svc_write_done":
 { Args: { "p_etag": string,"p_item_id": string,"p_raw_title"?: string }; Returns: undefined
+                           },
+"unassigned":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "uncomplete_item":
 { Args: { "p_id": string }; Returns: Json
