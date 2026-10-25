@@ -112,3 +112,42 @@ Choices the plan does not cover, one line each, with the reason. Newest at the b
 - Suggestions: a "whole word" is a run of letters, digits, `_` and `-`, so "lfx-2" and "lfx_notes" do not name `lfx`. The rule lives in `suggestions.ts` and `private.title_has_tag`, sharing one case table. Suggestions are only for untagged calendar events and manual tasks that are still tasks. They are rechecked whenever a title is set, and a new tag is suggested for untagged items from the last 30 days. Link adds the tag (source `suggestion`) and leaves the item's other suggestions open; Dismiss is remembered.
 - The Unassigned tray is reached from the Deadlines page, with a count badge, rather than adding a tab.
 - Tags can be given an area or deleted under More. They cannot be renamed, since a title that still says the old name would bring it back.
+
+## Phase 8
+
+- **Analytics** are SQL functions run at request time (`analytics_trend`, `analytics_areas`, `analytics_misses`, `analytics_heatmap`).
+  - Trend rows start at onboarding, so a new account shows no empty history.
+  - The 7-day average is points-weighted over the 7 days ending each day (decision 11).
+  - The miss grid uses closed calendar blocks by local start hour.
+  - A reschedule chain starts at a missed task with no predecessor, inside the range.
+  - Estimate accuracy is actual ÷ planned minutes over done items where actual minutes were entered.
+- Charts use Recharts, loaded only with the Analytics page. Area colours are a fixed categorical order validated on the app's dark surface (#141821); a colour follows an area's place in the user's list, so filtering never repaints an area. Rates use the band colours. The miss grid uses one hue whose strength is the miss share. Chart animation is off.
+- The year heatmap sits under Week → Months, one column per week, Monday first, coloured by band.
+- **Plan tomorrow** shows tomorrow's blocks, tasks and habits; open deadlines with no upcoming session; and the backlog with a "Tomorrow" button. Today links to it after 18:00.
+- **Sunday review** opens on the week ending today, otherwise the last full week. It is built from closed days and saves one reflection per week in a new `weekly_notes` table. Today links to it on the week's last day.
+- **Web Push** uses `@negrel/webpush` 0.5.0 (JSR), which runs on WebCrypto alone; a test checks that it encrypts (aes128gcm) and signs (VAPID) on the Deno runtime.
+  - The VAPID subject is the app's URL, not an email address.
+  - Notifications expire after 6 hours rather than arriving stale.
+  - A device that sends the same endpoint again takes it over, so a shared browser follows whoever turned notifications on last.
+- **When notifications go out:** `queue_push_prompts` (run every 5 minutes) sends each prompt at most once per local day, within 3 hours after its time, and only when it has something to say:
+  - Morning: open missed tasks.
+  - Deadlines: overdue, or no sessions scheduled, sent at the morning time.
+  - Evening: points still open today.
+
+  Each kind can be turned off. A job that reached no device is retried; one that reached some is not, so no device gets a duplicate. Gone devices (404, 410) are deleted.
+
+- **Offline ticks** queue in IndexedDB (`idb-keyval`), one entry per item, tagged with the user, and are replayed when the browser comes back online and on app start. A tick that reaches the server removes any queued one for that item. Ticks the server refuses (for example, the day closed meanwhile) are dropped with a message. While offline, a banner shows how many ticks are waiting.
+- **Export** is a read-only database function (`export_data`) that runs as the user under row-level security, instead of `GET /export` on app-api, since it involves no Google calls. The page builds the JSON file and two CSVs (items, days) from it.
+- **Account deletion** is `DELETE /me` on app-api, with `{ "confirm": "delete" }`. It stops watch channels, revokes the Google refresh token, then deletes the auth user, which cascades to every row. Google failures never block the deletion.
+- **Tasks mode** (3.13, 8.9):
+  - The `tasks` scope is requested only when a user connects Google Tasks from Settings in Tasks mode.
+  - Task lists are stored on connect, and from Settings → Refresh lists.
+  - Switching modes records `google_item_type_since`. The old source stops syncing (leases refuse it, polls skip it), and the new one creates items only from that logical date on. This covers switching back to events too.
+  - Tasks are polled every 10 minutes and on foreground, using `updatedMin` set a minute before the last run began. Echoes are skipped by etag.
+  - A due date is a date: its time and the user's timezone never shift the day.
+  - A task's start time for move rules is its logical day's start, so moving a task after its day began records a miss and creates a new item (M3).
+  - A task's points come from its list when it is created. After that the app owns them, and an estimate set in the app is kept, including on M3 copies.
+  - Completion is two-way until day close. Changes the sync applies are marked in the transaction (`mjolnir.from_google`), so they are not written back to Google.
+  - Ticking in the app queues a `task_status` write without If-Match; the write is idempotent because it reads the item's current state.
+  - In Tasks mode, quick add creates Google tasks: a time is ignored, with a note in the preview.
+  - Nothing stays to backfill: tasks due before the switch, completed tasks with no date, and hidden ones are not imported.

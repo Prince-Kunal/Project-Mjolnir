@@ -26,10 +26,11 @@ docs/                PLAN.md, DECISIONS.md
 ## Google Cloud setup (once)
 
 1. In [Google Cloud Console](https://console.cloud.google.com), create a project and enable the
-   **Google Calendar API**.
+   **Google Calendar API** (and the **Google Tasks API**, for Tasks mode).
 2. Under **Google Auth Platform**: set Branding; set Audience to External in Testing with your
    accounts as test users; add the scopes `openid`, `email`, `profile`, `calendar.events` and
-   `calendar.calendarlist.readonly` under Data Access.
+   `calendar.calendarlist.readonly` under Data Access, plus `tasks` for Tasks mode (asked for
+   only when a user turns Tasks mode on).
 3. Create a **Web application** client with:
    - JavaScript origin `http://localhost:5173`
    - Redirect URIs `http://127.0.0.1:55421/auth/v1/callback` (sign-in) and
@@ -43,7 +44,12 @@ docs/                PLAN.md, DECISIONS.md
    GOOGLE_REDIRECT_URI=http://127.0.0.1:55421/functions/v1/google-callback
    APP_URL=http://localhost:5173
    WORKER_SECRET=local-dev-worker-secret   # must match the Vault value in supabase/seed.sql
+   VAPID_KEYS='...'                         # Web Push: from `pnpm gen:vapid`
+   VAPID_SUBJECT=https://project-mjolnir.pages.dev
    ```
+
+   `pnpm gen:vapid` also prints `VITE_VAPID_PUBLIC_KEY` for `apps/web/.env.local`. Generate one
+   pair per environment: changing keys drops every saved device.
 
 ## Setup
 
@@ -77,6 +83,7 @@ The local stack uses ports in the 554xx range (API `55421`, DB `55422`, Studio `
 | `pnpm test:db`          | pgTAP tests against the local database                    |
 | `pnpm e2e`              | Playwright end-to-end tests (stack and functions running) |
 | `pnpm gen:shared-tests` | Regenerate SQL tests from the shared rule cases           |
+| `pnpm gen:vapid`        | New VAPID key pair for Web Push                           |
 | `pnpm lint`             | ESLint                                                    |
 | `pnpm format`           | Prettier                                                  |
 | `pnpm typecheck`        | `tsc --noEmit` in every package                           |
@@ -94,6 +101,11 @@ Postgres decides when work is due and wakes the `worker` Edge Function only when
    It stops after 100 seconds and continues in the next run.
 
 `pnpm functions:serve` must be running locally for step 3. Useful queries:
+
+In Tasks mode the same queue carries task lists: Google Tasks has no push channels, so enabled
+lists are polled every 10 minutes and when the app comes to the foreground, asking only for tasks
+updated since the last poll. Notifications work the same way: `schedule_due_jobs` (every 5
+minutes) queues `push` jobs on the `jobs` queue, and `worker` sends them with VAPID.
 
 ```sql
 select * from private.sync_state;            -- per-calendar sync state and last error
