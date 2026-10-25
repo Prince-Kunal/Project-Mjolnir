@@ -113,8 +113,8 @@ export function DaySettings({
         </div>
         {values.google_item_type === 'tasks' && (
           <p className="mt-2 text-xs text-muted">
-            Google Tasks syncing arrives in a later update. Until then, Mjolnir keeps the setting
-            and syncs nothing.
+            Calendars stop syncing and your history stays. Set up your task lists under Google
+            Tasks; tasks due from today on become items.
           </p>
         )}
       </fieldset>

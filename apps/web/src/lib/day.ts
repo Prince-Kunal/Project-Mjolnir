@@ -227,6 +227,7 @@ export type ItemPatch = Partial<{
   logical_date: string | null;
   area_id: string | null;
   actual_minutes: number | null;
+  planned_minutes: number | null;
 }>;
 
 export function useUpdateItem() {
@@ -497,3 +498,18 @@ export function useCalendarRange(from: string, to: string) {
     placeholderData: (previous) => previous,
   });
 }
+
+// Google Tasks mode (3.13): tasks are created and changed in Google through app-api ---------------
+
+export const useCreateGoogleTask = () =>
+  useItemMutation((t: { title: string; date: string | null; points: number }) =>
+    appApi<{ created: number }>('tasks', { ...t }),
+  );
+
+export const useEditGoogleTask = () =>
+  useItemMutation(({ id, ...patch }: { id: string; title?: string; date?: string | null }) =>
+    appApi<{ item_id: string }>(`tasks/${id}`, patch, 'PATCH'),
+  );
+
+export const useDeleteGoogleTask = () =>
+  useItemMutation((id: string) => appApi<{ item_id: string }>(`tasks/${id}`, undefined, 'DELETE'));

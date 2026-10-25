@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Notice } from '../../components/ui.tsx';
-import { useCreateEvent, useCreateTask } from '../../lib/day.ts';
+import { useCreateEvent, useCreateGoogleTask, useCreateTask } from '../../lib/day.ts';
 import { formatDay, formatMinutes, formatShortDay, formatTime } from '../../lib/format.ts';
 import { useProfile } from '../../lib/queries.ts';
 import { parseQuickAdd } from '../../lib/quickAdd.ts';
@@ -25,6 +25,7 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
   const [points, setPoints] = useState<1 | 2 | 3>(1);
   const createEvent = useCreateEvent();
   const createTask = useCreateTask();
+  const createGoogleTask = useCreateGoogleTask();
   const toast = useToast((s) => s.show);
 
   const parsed = useMemo(
@@ -40,8 +41,10 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
   );
   const effectivePoints = parsed?.hasPoints ? parsed.points : points;
   const taskDate = parsed?.hasDate ? parsed.date : defaultDate;
-  const pending = createEvent.isPending || createTask.isPending;
-  const error = createEvent.error ?? createTask.error;
+  // Tasks mode (3.13): the day lives in Google Tasks, which keep a date but no time.
+  const tasksMode = profile?.google_item_type === 'tasks';
+  const pending = createEvent.isPending || createTask.isPending || createGoogleTask.isPending;
+  const error = createEvent.error ?? createTask.error ?? createGoogleTask.error;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -50,7 +53,17 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
       setText('');
       onDone?.();
     };
-    if (parsed.kind === 'event') {
+    if (tasksMode) {
+      createGoogleTask.mutate(
+        { title: parsed.rawTitle, date: taskDate, points: effectivePoints },
+        {
+          onSuccess: () => {
+            toast(`Added to Google Tasks: ${formatDay(taskDate)}`);
+            done();
+          },
+        },
+      );
+    } else if (parsed.kind === 'event') {
       createEvent.mutate(
         { title: parsed.rawTitle, points: effectivePoints, start: parsed.start!, end: parsed.end! },
         {
@@ -116,7 +129,12 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
       </div>
       {parsed && profile && (
         <p role="status" className="pl-1 text-xs text-muted">
-          {parsed.kind === 'event' ? (
+          {tasksMode ? (
+            <>
+              <span className="font-medium text-text">Google task</span> · {formatDay(taskDate)}
+              {parsed.kind === 'event' ? ' · times are not kept in Tasks mode' : ''}
+            </>
+          ) : parsed.kind === 'event' ? (
             <>
               <span className="font-medium text-text">Event</span> ·{' '}
               {formatShortDay(parsed.start!, profile.timezone)}{' '}

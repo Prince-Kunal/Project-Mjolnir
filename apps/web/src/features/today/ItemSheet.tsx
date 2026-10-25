@@ -7,8 +7,10 @@ import { Button, Notice } from '../../components/ui.tsx';
 import {
   type DayItem,
   useDeleteEvent,
+  useDeleteGoogleTask,
   useDeleteTask,
   useEditEvent,
+  useEditGoogleTask,
   useScheduleTask,
   useToggleItem,
   useUpdateItem,
@@ -87,6 +89,8 @@ function ItemDetails({
   const editEvent = useEditEvent();
   const deleteEvent = useDeleteEvent();
   const schedule = useScheduleTask();
+  const editGoogleTask = useEditGoogleTask();
+  const deleteGoogleTask = useDeleteGoogleTask();
   const toast = useToast((s) => s.show);
   const { data: areas } = useAreas();
   const [minutes, setMinutes] = useState(item.actual_minutes ?? item.planned_minutes ?? 0);
@@ -94,6 +98,8 @@ function ItemDetails({
   const [scheduling, setScheduling] = useState(false);
 
   const isEvent = item.source === 'calendar' && item.google_event_id !== null;
+  // Tasks mode (3.13): title and date live in Google Tasks; points and estimate in the app.
+  const isGoogleTask = item.source === 'gtask';
   const open = !item.finalized;
   const startParts = item.start_at ? localParts(item.start_at, timeZone) : null;
   const endParts = item.end_at ? localParts(item.end_at, timeZone) : null;
@@ -104,14 +110,17 @@ function ItemDetails({
   });
 
   const done = item.status === 'done';
-  const editablePoints = item.source === 'manual' || item.source === 'habit' || isEvent;
+  const editablePoints =
+    item.source === 'manual' || item.source === 'habit' || isEvent || isGoogleTask;
   const error =
     toggle.error ??
     update.error ??
     remove.error ??
     editEvent.error ??
     deleteEvent.error ??
-    schedule.error;
+    schedule.error ??
+    editGoogleTask.error ??
+    deleteGoogleTask.error;
 
   function saveTitle() {
     const next = title.trim();
@@ -120,6 +129,11 @@ function ItemDetails({
       editEvent.mutate(
         { id: item.id, title: next },
         { onSuccess: () => toast('Renamed in Google Calendar') },
+      );
+    } else if (isGoogleTask) {
+      editGoogleTask.mutate(
+        { id: item.id, title: next },
+        { onSuccess: () => toast('Renamed in Google Tasks') },
       );
     } else if (item.source === 'manual') {
       const parsed = parseTitle(next);
@@ -152,7 +166,7 @@ function ItemDetails({
 
   return (
     <div className="flex flex-col gap-5 text-sm">
-      {open && (item.source === 'manual' || isEvent) && (
+      {open && (item.source === 'manual' || isEvent || isGoogleTask) && (
         <label className="block">
           <span className="mb-1.5 block font-medium">Title</span>
           <input
@@ -240,6 +254,55 @@ function ItemDetails({
           ))}
         </select>
       </label>
+
+      {isGoogleTask && open && (
+        <div>
+          <p className="mb-1.5 font-medium">Due</p>
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ['Today', today],
+                ['Tomorrow', addDays(today, 1)],
+                ['No date', null],
+              ] as const
+            ).map(([label, date]) => (
+              <Button
+                key={label}
+                variant={item.logical_date === date ? 'primary' : 'secondary'}
+                disabled={editGoogleTask.isPending || item.logical_date === date}
+                onClick={() =>
+                  editGoogleTask.mutate(
+                    { id: item.id, date },
+                    { onSuccess: () => (toast('Moved in Google Tasks'), onClose()) },
+                  )
+                }
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-muted">
+            Moving a task to another day after its day began records a miss, as for events.
+          </p>
+          <label className="mt-4 flex items-center gap-2">
+            <span className="font-medium">Estimate</span>
+            <input
+              type="number"
+              min={0}
+              step={5}
+              defaultValue={item.planned_minutes ?? ''}
+              aria-label="Estimate in minutes"
+              onBlur={(e) => {
+                const v = e.target.value === '' ? null : Math.max(0, Number(e.target.value));
+                if (v !== item.planned_minutes)
+                  update.mutate({ id: item.id, patch: { planned_minutes: v } });
+              }}
+              className="w-24 rounded-lg border border-border bg-surface-2 px-3 py-2 tabular-nums"
+            />
+            <span className="text-muted">minutes</span>
+          </label>
+        </div>
+      )}
 
       {item.source === 'manual' && !item.finalized && (
         <div>
@@ -410,6 +473,24 @@ function ItemDetails({
             }
           >
             Delete
+          </Button>
+        )}
+        {isGoogleTask && open && item.status !== 'deleted' && (
+          <Button
+            variant="ghost"
+            className="text-band-not-good"
+            disabled={deleteGoogleTask.isPending}
+            onClick={() => {
+              if (!window.confirm(`Delete “${item.title}” from Google Tasks?`)) return;
+              deleteGoogleTask.mutate(item.id, {
+                onSuccess: () => {
+                  onClose();
+                  toast('Deleted from Google Tasks');
+                },
+              });
+            }}
+          >
+            Delete task
           </Button>
         )}
         {isEvent && item.status !== 'deleted' && (

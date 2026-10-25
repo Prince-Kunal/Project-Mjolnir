@@ -12,10 +12,10 @@ export interface ConnectReturn {
 export type ConnectResult = { status: 'ok' } | { status: 'error'; reason: string };
 
 /** Asks app-api for Google's consent URL and leaves the app for it (plan 8.1). */
-export async function startGoogleConnect(returnTo: ConnectReturn) {
+export async function startGoogleConnect(returnTo: ConnectReturn, opts: { tasks?: boolean } = {}) {
   const { data, error } = await supabase.functions.invoke<{ url: string }>(
     'app-api/google/connect',
-    { method: 'POST' },
+    { method: 'POST', body: { tasks: opts.tasks === true } },
   );
   if (error || !data?.url) throw new Error('Could not start the Google connection');
   try {
@@ -43,6 +43,7 @@ const MESSAGES: Record<string, string> = {
   missing_scopes:
     'Mjolnir needs both calendar permissions. Tick both boxes on Google’s consent screen.',
   account_in_use: 'That Google account is already connected to another Mjolnir user.',
+  task_lists: 'Connected, but your Google task lists could not be read. Try Refresh lists.',
 };
 
 export function connectErrorMessage(reason: string): string {

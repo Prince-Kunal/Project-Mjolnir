@@ -20,6 +20,7 @@ import { GoogleConnectCard } from './GoogleConnectCard.tsx';
 import { DataCard } from './DataCard.tsx';
 import { HabitsEditor } from './HabitsEditor.tsx';
 import { NotificationsCard } from './NotificationsCard.tsx';
+import { TaskListsCard } from './TaskListsCard.tsx';
 import { TagsEditor } from './TagsEditor.tsx';
 
 export function MorePage() {
@@ -51,7 +52,7 @@ export function MorePage() {
         returnTo={{ ok: '/more', error: '/more' }}
         error={result?.status === 'error' ? connectErrorMessage(result.reason) : null}
       />
-      <CalendarPicker />
+      <ModeSources />
       <Card
         title="Habits"
         description="Daily checks worth 1 to 3 points. They count toward the day's score."
@@ -179,4 +180,11 @@ function AccountCard() {
       </div>
     </Card>
   );
+}
+
+/** The Google source for the user's mode: calendars, or task lists in Tasks mode (3.13). */
+function ModeSources() {
+  const { data: profile } = useProfile();
+  if (!profile) return null;
+  return profile.google_item_type === 'tasks' ? <TaskListsCard /> : <CalendarPicker />;
 }
