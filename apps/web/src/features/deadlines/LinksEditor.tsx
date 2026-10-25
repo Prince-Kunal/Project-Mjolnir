@@ -43,10 +43,7 @@ export function LinksEditor({ item }: { item: DayItem }) {
             </span>
           ))}
           {item.deadlines.map((d) => (
-            <span
-              key={d.id}
-              className="rounded border border-accent/40 px-1.5 py-0.5 text-xs text-accent"
-            >
+            <span key={d.id} className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-text">
               {d.title}
             </span>
           ))}
@@ -104,7 +101,7 @@ function Picker({ item, hashtags, onDone }: { item: DayItem; hashtags: string[];
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+    <div className="flex flex-col gap-3 rounded-[var(--radius-inner)] bg-surface-2 p-4">
       <fieldset>
         <legend className="mb-1 text-xs text-muted">Tags</legend>
         {ordered.length > 0 && (
@@ -121,11 +118,11 @@ function Picker({ item, hashtags, onDone }: { item: DayItem; hashtags: string[];
                   disabled={fixed}
                   title={fixed ? 'From the title' : undefined}
                   onClick={() => setChosenTags(flip(chosenTags, name))}
-                  className={`rounded-full border px-2 py-0.5 text-xs ${on ? 'border-accent bg-accent/15 text-text' : 'border-border text-muted'} disabled:opacity-70`}
+                  className={`rounded-full px-2.5 py-1 text-xs transition ${on ? 'bg-text text-bg' : 'bg-surface-2 text-muted hover:text-text'} disabled:opacity-70`}
                 >
                   #{name}
                   {suggested.has(name) && !on && (
-                    <span className="ml-1 text-accent">suggested</span>
+                    <span className="ml-1 italic text-bone">suggested</span>
                   )}
                 </button>
               );
@@ -137,7 +134,7 @@ function Picker({ item, hashtags, onDone }: { item: DayItem; hashtags: string[];
           onChange={(e) => setNewTags(e.target.value)}
           placeholder="New tags, such as lfx gsoc"
           aria-label="New tags"
-          className="mt-2 w-full rounded-lg border border-border bg-surface-2 px-3 py-1.5"
+          className="mt-2 w-full rounded-[var(--radius-inner)] bg-surface-2 px-3 py-1.5"
         />
         {badTag && (
           <p className="mt-1 text-xs text-band-not-good">

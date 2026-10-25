@@ -24,7 +24,7 @@ export function StatusSelect({ deadline }: { deadline: Deadline }) {
       value={deadline.status}
       aria-label="Status"
       onChange={(e) => update.mutate({ id: deadline.id, status: e.target.value as DeadlineStatus })}
-      className="rounded-lg border border-border bg-surface-2 px-2 py-1 text-xs font-medium"
+      className="rounded-[var(--radius-inner)] bg-surface-2 px-2 py-1 text-xs font-medium"
       style={{ color: STATUS[deadline.status].color }}
     >
       {(Object.keys(STATUS) as DeadlineStatus[]).map((s) => (

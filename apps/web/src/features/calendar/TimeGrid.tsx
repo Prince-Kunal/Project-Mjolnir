@@ -182,7 +182,7 @@ export function TimeGrid({
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Day headers */}
-      <div className="grid border-b border-border" style={{ gridTemplateColumns: cols }}>
+      <div className="grid border-b border-rule" style={{ gridTemplateColumns: cols }}>
         <div />
         {days.map((d) => {
           const isToday = d === todayDate;
@@ -192,14 +192,12 @@ export function TimeGrid({
               onClick={() => onOpenDay(d)}
               className="flex flex-col items-center py-2 hover:bg-surface-2/50"
             >
-              <span
-                className={`text-[11px] font-medium tracking-wide uppercase ${isToday ? 'text-accent' : 'text-muted'}`}
-              >
+              <span className={`text-[12px] ${isToday ? 'text-accent' : 'text-muted'}`}>
                 {WEEKDAY.format(new Date(`${d}T12:00:00Z`))}
               </span>
               <span
                 className={`mt-0.5 flex size-9 items-center justify-center rounded-full text-lg tabular-nums ${
-                  isToday ? 'bg-accent font-semibold text-bg' : ''
+                  isToday ? 'rounded-full bg-text font-semibold text-bg' : ''
                 }`}
               >
                 {Number(d.slice(8))}
@@ -210,15 +208,15 @@ export function TimeGrid({
       </div>
 
       {/* All-day row: all-day events, and tasks and habits for the day */}
-      <div className="grid border-b border-border" style={{ gridTemplateColumns: cols }}>
-        <div className="self-center pr-2 text-right text-[10px] text-muted">all day</div>
+      <div className="grid border-b border-rule" style={{ gridTemplateColumns: cols }}>
+        <div className="self-center pr-2 text-right text-[12px] text-muted">all day</div>
         {days.map((d) => {
           const list = allDay.get(d) ?? [];
           const events = list.filter((i) => i.source === 'calendar');
           const checks = list.filter((i) => i.source !== 'calendar');
           const open = checks.filter((i) => i.status === 'pending').length;
           return (
-            <div key={d} className="flex min-h-8 flex-col gap-0.5 border-l border-border p-0.5">
+            <div key={d} className="flex min-h-8 flex-col gap-0.5 border-l border-rule p-0.5">
               {events.map((i) => {
                 const bg = eventColor(i.color_key, i.calendar_color);
                 return (
@@ -238,7 +236,7 @@ export function TimeGrid({
                   className="truncate rounded bg-surface-2 px-1.5 py-0.5 text-left text-xs text-text"
                   title="Tasks and habits for this day"
                 >
-                  {open ? `${open} open task${open === 1 ? '' : 's'}` : `${checks.length} done ✓`}
+                  {open ? `${open} open task${open === 1 ? '' : 's'}` : `${checks.length} done`}
                 </button>
               )}
             </div>
@@ -253,7 +251,7 @@ export function TimeGrid({
             {Array.from({ length: 23 }, (_, h) => (
               <span
                 key={h}
-                className="absolute right-2 -translate-y-1/2 text-[10px] text-muted tabular-nums"
+                className="absolute right-2 -translate-y-1/2 text-[12px] text-muted tabular-nums"
                 style={{ top: (h + 1) * HOUR }}
               >
                 {String(h + 1).padStart(2, '0')}:00
@@ -272,9 +270,9 @@ export function TimeGrid({
             {days.map((d, dayIndex) => (
               <div
                 key={d}
-                className="relative cursor-cell border-l border-border select-none"
+                className="relative cursor-cell border-l border-rule select-none"
                 style={{
-                  backgroundImage: `repeating-linear-gradient(to bottom, var(--color-border) 0 1px, transparent 1px ${HOUR}px)`,
+                  backgroundImage: `repeating-linear-gradient(to bottom, var(--color-rule) 0 1px, transparent 1px ${HOUR}px)`,
                   touchAction: 'pan-y',
                 }}
                 onPointerDown={(e) => startCreate(e, dayIndex)}
@@ -327,7 +325,22 @@ export function TimeGrid({
                       <span
                         className={`font-medium ${i.status === 'done' ? 'line-through' : ''} ${short ? 'inline' : 'block truncate pt-0.5'}`}
                       >
-                        {i.status === 'done' && '✓ '}
+                        {i.status === 'done' && (
+                          <svg
+                            viewBox="0 0 16 16"
+                            className="mr-1 inline size-3 align-[-1px]"
+                            aria-label="Done"
+                          >
+                            <path
+                              d="M3 8.5l3.2 3L13 4.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        )}
                         {i.title || '(no title)'}
                       </span>
                       <span className={short ? 'ml-1 opacity-80' : 'block opacity-80'}>

@@ -30,7 +30,7 @@ export function ColorMap({ rules, onChange, defaultColor }: Props) {
         <span className="w-44 text-center">Points (0 = not a task)</span>
         <span className="text-center">Primary</span>
       </div>
-      <ul className="divide-y divide-border">
+      <ul className="divide-y divide-rule">
         {GOOGLE_EVENT_COLORS.map((c) => {
           const rule = byKey.get(c.key) ?? { colorKey: c.key, points: 0, primaryForPoints: false };
           const showPrimary = rule.points > 0 && sharedValues.has(rule.points as 1 | 2 | 3);
@@ -50,7 +50,7 @@ export function ColorMap({ rules, onChange, defaultColor }: Props) {
               <div
                 role="radiogroup"
                 aria-label={`${c.name} points`}
-                className="flex w-44 overflow-hidden rounded-lg border border-border"
+                className="flex w-48 rounded-full bg-surface-2 p-1"
               >
                 {POINT_OPTIONS.map((p) => (
                   <button
@@ -59,12 +59,12 @@ export function ColorMap({ rules, onChange, defaultColor }: Props) {
                     role="radio"
                     aria-checked={rule.points === p}
                     onClick={() => onChange(setRulePoints(rules, c.key as ColorKey, p))}
-                    className={`flex-1 py-1.5 text-sm transition ${
+                    className={`h-8 flex-1 rounded-full text-sm transition ${
                       rule.points !== p
-                        ? 'text-muted hover:bg-surface-2'
+                        ? 'text-muted hover:text-text'
                         : p === 0
-                          ? 'bg-surface-2 font-semibold text-text'
-                          : 'bg-accent font-semibold text-bg'
+                          ? 'bg-active font-semibold text-text'
+                          : 'bg-text font-semibold text-bg'
                     }`}
                   >
                     {p}

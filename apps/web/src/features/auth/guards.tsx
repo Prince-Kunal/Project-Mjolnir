@@ -15,7 +15,15 @@ export function RequireAuth() {
   const { session, ready } = useAuth();
   const location = useLocation();
   if (!ready) return <FullPageLoading />;
-  if (!session) return <Navigate to="/sign-in" replace state={{ from: location.pathname }} />;
+  // A visitor at the front door sees the landing page; a deep link goes straight to sign-in.
+  if (!session)
+    return (
+      <Navigate
+        to={location.pathname === '/' ? '/welcome' : '/sign-in'}
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
   return <Outlet />;
 }
 

@@ -16,7 +16,7 @@ export function TagsEditor() {
     );
 
   return (
-    <ul className="flex flex-col divide-y divide-border text-sm">
+    <ul className="flex flex-col divide-y divide-rule text-sm">
       {tags.map((t) => (
         <li key={t.id} className="flex items-center gap-3 py-2">
           <span className="min-w-0 flex-1 truncate">#{t.name}</span>
@@ -24,7 +24,7 @@ export function TagsEditor() {
             value={t.area_id ?? ''}
             aria-label={`Area for #${t.name}`}
             onChange={(e) => save.mutate({ id: t.id, area_id: e.target.value || null })}
-            className="rounded-lg border border-border bg-surface-2 px-2 py-1 text-xs"
+            className="rounded-[var(--radius-inner)] bg-surface-2 px-2 py-1 text-xs"
           >
             <option value="">No area</option>
             {areas?.map((a) => (

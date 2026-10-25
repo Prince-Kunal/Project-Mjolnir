@@ -81,11 +81,11 @@ export const useHeatmap = (year: number) =>
   });
 
 /**
- * Categorical slots for areas, validated on the app's dark surface (#141821). Colour follows the
+ * Categorical slots for areas on the forged-iron ground: lightning first (the data hue), then the validated dark set. Colour follows the
  * area's place in the user's list, so filtering never repaints an area.
  */
 export const AREA_COLORS = [
-  '#3987e5',
+  '#9ccbff',
   '#d95926',
   '#199e70',
   '#c98500',
@@ -94,7 +94,7 @@ export const AREA_COLORS = [
   '#9085e9',
   '#e66767',
 ];
-export const NO_AREA_COLOR = '#5b6275';
+export const NO_AREA_COLOR = '#5f5a53';
 
 /** Points-weighted rate over closed days (decision 11), and how many counted. */
 export function summarise(days: TrendDay[]) {

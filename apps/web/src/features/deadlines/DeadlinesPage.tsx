@@ -21,9 +21,9 @@ export function DeadlinesPage() {
   const closed = deadlines?.filter((d) => ['done', 'dropped'].includes(d.status)) ?? [];
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Deadlines</h1>
+        <h1 className="text-[28px] leading-tight md:text-[32px]">Deadlines</h1>
         <div className="flex items-center gap-2">
           <Link
             to="/unassigned"
@@ -31,7 +31,7 @@ export function DeadlinesPage() {
           >
             Unassigned
             {unassigned && unassigned.length > 0 && (
-              <span className="ml-1.5 rounded-full bg-accent px-1.5 py-px text-xs font-semibold text-bg tabular-nums">
+              <span className="ml-1.5 rounded-full bg-text px-1.5 py-px text-xs font-semibold text-bg tabular-nums">
                 {unassigned.length}
               </span>
             )}
@@ -42,7 +42,9 @@ export function DeadlinesPage() {
             aria-label="New deadline"
             className="whitespace-nowrap"
           >
-            New<span className="hidden sm:inline">&nbsp;deadline</span>
+            <span>
+              New<span className="hidden sm:inline"> deadline</span>
+            </span>
           </Button>
         </div>
       </header>
@@ -56,23 +58,21 @@ export function DeadlinesPage() {
           <Notice tone="error">Could not load deadlines. Try again.</Notice>
         </div>
       ) : deadlines?.length === 0 ? (
-        <p className="mt-8 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
+        <p className="mt-8 rounded-[var(--radius-card)] bg-surface p-6 text-center text-sm text-muted">
           No deadlines yet. Add one with a tag, such as “5 PRs raised” with #lfx, and every #lfx
           block counts toward it.
         </p>
       ) : (
         <>
-          <ul className="mt-6 flex flex-col gap-3">
+          <ul className="mt-6 grid gap-4 lg:grid-cols-2">
             {open.map((d) => (
               <DeadlineCard key={d.id} deadline={d} timeZone={profile.timezone} />
             ))}
           </ul>
           {closed.length > 0 && (
             <>
-              <h2 className="mt-8 text-xs font-semibold tracking-wide text-muted uppercase">
-                Done and dropped
-              </h2>
-              <ul className="mt-2 flex flex-col gap-3 opacity-75">
+              <h2 className="mt-8 text-[17px] text-text">Done and dropped</h2>
+              <ul className="mt-3 grid gap-4 opacity-75 lg:grid-cols-2">
                 {closed.map((d) => (
                   <DeadlineCard key={d.id} deadline={d} timeZone={profile.timezone} />
                 ))}
@@ -96,13 +96,10 @@ export function DeadlinesPage() {
 
 function DeadlineCard({ deadline: d, timeZone }: { deadline: Deadline; timeZone: string }) {
   return (
-    <li className="rounded-xl border border-border bg-surface p-4">
+    <li className="rounded-[var(--radius-card)] bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <Link
-            to={`/deadlines/${d.id}`}
-            className="block truncate font-semibold hover:text-accent"
-          >
+          <Link to={`/deadlines/${d.id}`} className="block truncate font-semibold hover:text-bone">
             {d.title}
           </Link>
           <p

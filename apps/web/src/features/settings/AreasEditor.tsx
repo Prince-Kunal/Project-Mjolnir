@@ -3,7 +3,7 @@ import { Button, Loading } from '../../components/ui.tsx';
 import { useArchiveArea, useAreas, useSaveArea } from '../../lib/queries.ts';
 
 const field =
-  'min-w-0 flex-1 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm focus:border-accent focus:outline-none';
+  'min-w-0 flex-1 rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 text-sm focus:outline-2 focus:outline-bone/50';
 
 export function AreasEditor() {
   const { data: areas, isLoading } = useAreas();
@@ -15,7 +15,7 @@ export function AreasEditor() {
   return (
     <div className="flex flex-col gap-3">
       {areas?.length ? (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-rule">
           {areas.map((a) => (
             <li key={a.id} className="flex items-center gap-2 py-2">
               <input

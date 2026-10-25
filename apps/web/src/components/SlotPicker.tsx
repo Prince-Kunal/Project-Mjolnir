@@ -47,7 +47,7 @@ export function SlotPicker({ minutes, timeZone, extra = [], onPick, pending, err
       key={`${label}-${start.toISOString()}`}
       disabled={pending}
       onClick={() => pick(start)}
-      className="flex w-full items-center justify-between rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-left text-sm hover:border-accent disabled:opacity-50"
+      className="flex w-full items-center justify-between rounded-[var(--radius-inner)] bg-surface-2 px-4 py-3 text-left text-sm transition hover:bg-active disabled:opacity-50"
     >
       <span>{label}</span>
       <span className="text-muted tabular-nums">
@@ -88,7 +88,7 @@ export function SlotPicker({ minutes, timeZone, extra = [], onPick, pending, err
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+            className="rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2"
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -97,7 +97,7 @@ export function SlotPicker({ minutes, timeZone, extra = [], onPick, pending, err
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
-            className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+            className="rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2"
           />
         </label>
         <Button type="submit" variant="secondary" disabled={!date || !time || pending}>

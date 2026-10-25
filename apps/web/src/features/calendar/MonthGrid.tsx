@@ -34,12 +34,9 @@ export function MonthGrid({
 }: Props) {
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="grid grid-cols-7 border-b border-border">
+      <div className="grid grid-cols-7 border-b border-rule">
         {weekDays(days[0]!, weekStart).map((d) => (
-          <div
-            key={d}
-            className="py-2 text-center text-[11px] font-medium tracking-wide text-muted uppercase"
-          >
+          <div key={d} className="py-2 text-center text-[12px] text-muted">
             {WEEKDAY.format(new Date(`${d}T12:00:00Z`))}
           </div>
         ))}
@@ -57,7 +54,7 @@ export function MonthGrid({
             <div
               key={d}
               onClick={(e) => e.target === e.currentTarget && onCreateOn(d)}
-              className={`flex min-h-0 cursor-cell flex-col gap-0.5 overflow-hidden border-r border-b border-border p-1 ${
+              className={`flex min-h-0 cursor-cell flex-col gap-0.5 overflow-hidden border-r border-b border-rule p-1 ${
                 d.startsWith(month) ? '' : 'bg-surface/40'
               }`}
             >
@@ -65,7 +62,7 @@ export function MonthGrid({
                 onClick={() => onOpenDay(d)}
                 className={`mx-auto flex size-6 items-center justify-center rounded-full text-xs tabular-nums ${
                   isToday
-                    ? 'bg-accent font-semibold text-bg'
+                    ? 'rounded-full bg-text font-semibold text-bg'
                     : d.startsWith(month)
                       ? 'text-text'
                       : 'text-muted'
@@ -76,16 +73,16 @@ export function MonthGrid({
               {checks.length > 0 && (
                 <button
                   onClick={() => onOpenDay(d)}
-                  className="truncate rounded bg-surface-2 px-1 text-left text-[11px]"
+                  className="truncate rounded bg-surface-2 px-1 text-left text-[12px]"
                 >
-                  {open ? `${open} open task${open === 1 ? '' : 's'}` : `${checks.length} done ✓`}
+                  {open ? `${open} open task${open === 1 ? '' : 's'}` : `${checks.length} done`}
                 </button>
               )}
               {shown.map((i) => (
                 <button
                   key={i.id}
                   onClick={() => onOpen(i)}
-                  className={`flex items-center gap-1 truncate rounded px-1 text-left text-[11px] hover:bg-surface-2 ${
+                  className={`flex items-center gap-1 truncate rounded px-1 text-left text-[12px] hover:bg-surface-2 ${
                     i.status === 'done' ? 'line-through opacity-70' : ''
                   }`}
                 >
@@ -104,7 +101,7 @@ export function MonthGrid({
               {more > 0 && (
                 <button
                   onClick={() => onOpenDay(d)}
-                  className="px-1 text-left text-[11px] font-medium text-muted hover:text-text"
+                  className="px-1 text-left text-[12px] font-medium text-muted hover:text-text"
                 >
                   {more} more
                 </button>

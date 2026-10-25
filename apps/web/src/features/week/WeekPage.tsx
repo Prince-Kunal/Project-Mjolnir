@@ -27,7 +27,7 @@ function Arrow({ dir, onClick, label }: { dir: 'left' | 'right'; onClick(): void
     <button
       onClick={onClick}
       aria-label={label}
-      className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-text"
+      className="rounded-full p-2 text-faint hover:bg-surface-2 hover:text-text"
     >
       <svg viewBox="0 0 16 16" className="size-4" aria-hidden>
         <path
@@ -71,15 +71,15 @@ export function WeekPage() {
   const { data: profile } = useProfile();
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-[28px] leading-tight md:text-[32px]">
           {view === 'week' ? 'Week' : 'Months'}
         </h1>
         <div
           role="radiogroup"
           aria-label="Table"
-          className="flex rounded-lg border border-border p-0.5 text-xs"
+          className="flex rounded-full bg-surface-2 p-1 text-sm"
         >
           {(['week', 'months'] as const).map((v) => (
             <button
@@ -87,7 +87,7 @@ export function WeekPage() {
               role="radio"
               aria-checked={view === v}
               onClick={() => setParams(v === 'week' ? {} : { view: v })}
-              className={`rounded-md px-2.5 py-1 capitalize ${view === v ? 'bg-surface-2 font-medium text-text' : 'text-muted'}`}
+              className={`rounded-md px-2.5 py-1 capitalize ${view === v ? 'bg-text font-medium text-bg' : 'text-muted'}`}
             >
               {v}
             </button>
@@ -136,7 +136,7 @@ function WeekTable({ today, weekStart }: { today: string; weekStart: number }) {
         <>
           <table className="mt-4 w-full text-sm">
             <thead className="hidden text-left text-xs text-muted sm:table-header-group">
-              <tr className="border-b border-border">
+              <tr className="border-b border-rule">
                 <th className="py-2 font-medium">Day</th>
                 <th className="py-2 font-medium">Points</th>
                 <th className="py-2 font-medium">Success</th>
@@ -144,7 +144,7 @@ function WeekTable({ today, weekStart }: { today: string; weekStart: number }) {
                 <th className="py-2 font-medium">Note</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-rule">
               {days.map((d) => {
                 const status = streakStatus(d, today);
                 const empty = !d.finalized && d.planned === 0;
@@ -154,7 +154,7 @@ function WeekTable({ today, weekStart }: { today: string; weekStart: number }) {
                     className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 py-3 sm:table-row"
                   >
                     <td className="sm:py-2.5">
-                      <Link to={`/?date=${d.date}`} className="font-medium hover:text-accent">
+                      <Link to={`/?date=${d.date}`} className="font-medium hover:text-bone">
                         {formatWeekday(d.date)}{' '}
                         <span className="text-muted">{formatDayMonth(d.date)}</span>
                       </Link>
@@ -183,7 +183,7 @@ function WeekTable({ today, weekStart }: { today: string; weekStart: number }) {
               })}
             </tbody>
           </table>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] bg-surface px-4 py-3 text-sm">
             <span>
               Week <span className="font-semibold tabular-nums">{weekRate}%</span>
               {planned > 0 && (
@@ -224,14 +224,14 @@ function MonthsTable({ today }: { today: string }) {
       ) : error ? (
         <Notice tone="error">Could not load this year.</Notice>
       ) : !months?.length ? (
-        <p className="mt-6 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
+        <p className="mt-6 rounded-[var(--radius-card)] bg-surface p-6 text-center text-sm text-muted">
           No closed days in {year} yet. Rows appear as days close.
         </p>
       ) : (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[34rem] text-sm">
             <thead className="text-left text-xs text-muted">
-              <tr className="border-b border-border">
+              <tr className="border-b border-rule">
                 <th className="py-2 font-medium">Month</th>
                 <th className="py-2 font-medium">Success</th>
                 <th className="py-2 font-medium">Days counted</th>
@@ -240,7 +240,7 @@ function MonthsTable({ today }: { today: string }) {
                 <th className="py-2 font-medium">Best streak</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border tabular-nums">
+            <tbody className="divide-y divide-rule tabular-nums">
               {MONTHS.map((name, i) => {
                 const m = byMonth.get(i + 1);
                 if (!m) return null;

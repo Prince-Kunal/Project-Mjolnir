@@ -40,8 +40,8 @@ export function PlanTomorrowPage() {
   const firstTag = scheduling?.tags[0]?.name;
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-semibold tracking-tight">Plan tomorrow</h1>
+    <div>
+      <h1 className="text-[28px] leading-tight md:text-[32px]">Plan tomorrow</h1>
       <p className="mt-1 text-sm text-muted">
         {formatDay(tomorrow)} · {day.score.planned} point{day.score.planned === 1 ? '' : 's'}{' '}
         planned
@@ -51,7 +51,7 @@ export function PlanTomorrowPage() {
       {today.missed_open > 0 && (
         <Link
           to="/missed"
-          className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-band-fair/40 bg-band-fair/10 px-4 py-3 text-sm"
+          className="mt-5 flex items-center justify-between gap-3 rounded-[var(--radius-card)] bg-[#2a2213] text-[#f0c987] px-4 py-3 text-sm"
         >
           <span>
             {today.missed_open} missed task{today.missed_open === 1 ? '' : 's'} could go into
@@ -61,91 +61,102 @@ export function PlanTomorrowPage() {
         </Link>
       )}
 
-      <Section title="Schedule">
-        {blocks.length ? (
-          <ul className="divide-y divide-border">
-            {blocks.map((i) => (
-              <PlanRow key={i.id} item={i} timeZone={tz} onOpen={() => setOpenId(i.id)} />
-            ))}
-          </ul>
-        ) : (
-          <Hint>No blocks yet. Add one below or in Google Calendar.</Hint>
-        )}
-      </Section>
+      <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="flex min-w-0 flex-col gap-5">
+          <Section title="Schedule">
+            {blocks.length ? (
+              <ul className="divide-y divide-rule">
+                {blocks.map((i) => (
+                  <PlanRow key={i.id} item={i} timeZone={tz} onOpen={() => setOpenId(i.id)} />
+                ))}
+              </ul>
+            ) : (
+              <Hint>No blocks yet. Add one below or in Google Calendar.</Hint>
+            )}
+          </Section>
 
-      {(tasks.length > 0 || habits.length > 0) && (
-        <Section title="Tasks and habits">
-          <ul className="divide-y divide-border">
-            {tasks.map((i) => (
-              <PlanRow key={i.id} item={i} timeZone={tz} onOpen={() => setOpenId(i.id)} />
-            ))}
-          </ul>
-          {habits.length > 0 && (
-            <p className="mt-2 text-xs text-muted">
-              {habits.length} habit{habits.length === 1 ? '' : 's'}:{' '}
-              {habits.map((h) => h.title).join(', ')}
-            </p>
+          {(tasks.length > 0 || habits.length > 0) && (
+            <Section title="Tasks and habits">
+              <ul className="divide-y divide-rule">
+                {tasks.map((i) => (
+                  <PlanRow key={i.id} item={i} timeZone={tz} onOpen={() => setOpenId(i.id)} />
+                ))}
+              </ul>
+              {habits.length > 0 && (
+                <p className="mt-2 text-xs text-muted">
+                  {habits.length} habit{habits.length === 1 ? '' : 's'}:{' '}
+                  {habits.map((h) => h.title).join(', ')}
+                </p>
+              )}
+            </Section>
           )}
-        </Section>
-      )}
 
-      <div className="mt-6">
-        <QuickAdd key={tomorrow} defaultDate={tomorrow} initialText="" />
-        <p className="mt-1.5 text-xs text-muted">
-          With no day named, tasks go to tomorrow. For a block, name the time: “Gym tomorrow 7am
-          1h”.
-        </p>
+          <div className="rounded-[var(--radius-card)] bg-surface p-5">
+            <QuickAdd key={tomorrow} defaultDate={tomorrow} initialText="" />
+            <p className="mt-1.5 text-xs text-muted">
+              With no day named, tasks go to tomorrow. For a block, name the time: “Gym tomorrow 7am
+              1h”.
+            </p>
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-col gap-5">
+          {unscheduled.length > 0 && (
+            <Section title="Deadlines with nothing scheduled">
+              <ul className="divide-y divide-rule">
+                {unscheduled.map((d) => (
+                  <li key={d.id} className="flex items-center gap-3 py-2.5 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <Link to={`/deadlines/${d.id}`} className="block truncate hover:text-bone">
+                        {d.title}
+                      </Link>
+                      <p className="text-xs text-muted">{dueText(d)}</p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      className="px-3 py-1.5"
+                      onClick={() => setScheduling(d)}
+                    >
+                      Schedule
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {backlog.length > 0 && (
+            <Section title="From the backlog">
+              <ul className="divide-y divide-rule">
+                {backlog.slice(0, 10).map((t: DayItem) => (
+                  <li key={t.id} className="flex items-center gap-3 py-2.5 text-sm">
+                    <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                    <PointDots points={t.points} />
+                    <Button
+                      variant="ghost"
+                      className="px-2 py-1 text-xs"
+                      disabled={update.isPending}
+                      onClick={() =>
+                        update.mutate(
+                          { id: t.id, patch: { logical_date: tomorrow } },
+                          { onSuccess: () => toast(`“${t.title}” is on tomorrow`) },
+                        )
+                      }
+                    >
+                      Tomorrow
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {unscheduled.length === 0 && backlog.length === 0 && (
+            <Section title="Nothing waiting">
+              <Hint>Every open deadline has a session coming, and the backlog is empty.</Hint>
+            </Section>
+          )}
+        </div>
       </div>
-
-      {unscheduled.length > 0 && (
-        <Section title="Deadlines with nothing scheduled">
-          <ul className="divide-y divide-border">
-            {unscheduled.map((d) => (
-              <li key={d.id} className="flex items-center gap-3 py-2.5 text-sm">
-                <div className="min-w-0 flex-1">
-                  <Link to={`/deadlines/${d.id}`} className="block truncate hover:text-accent">
-                    {d.title}
-                  </Link>
-                  <p className="text-xs text-muted">{dueText(d)}</p>
-                </div>
-                <Button
-                  variant="secondary"
-                  className="px-3 py-1.5"
-                  onClick={() => setScheduling(d)}
-                >
-                  Schedule
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {backlog.length > 0 && (
-        <Section title="From the backlog">
-          <ul className="divide-y divide-border">
-            {backlog.slice(0, 10).map((t: DayItem) => (
-              <li key={t.id} className="flex items-center gap-3 py-2.5 text-sm">
-                <span className="min-w-0 flex-1 truncate">{t.title}</span>
-                <PointDots points={t.points} />
-                <Button
-                  variant="ghost"
-                  className="px-2 py-1 text-xs"
-                  disabled={update.isPending}
-                  onClick={() =>
-                    update.mutate(
-                      { id: t.id, patch: { logical_date: tomorrow } },
-                      { onSuccess: () => toast(`“${t.title}” is on tomorrow`) },
-                    )
-                  }
-                >
-                  Tomorrow
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
 
       <ItemSheet item={open} today={today.today} timeZone={tz} onClose={() => setOpenId(null)} />
       <Sheet
@@ -190,8 +201,8 @@ function PlanRow({ item, timeZone, onOpen }: { item: DayItem; timeZone: string; 
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-6">
-      <h2 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h2>
+    <section className="rounded-[var(--radius-card)] bg-surface px-5 pt-4 pb-2">
+      <h2 className="text-[17px] text-text">{title}</h2>
       <div className="mt-1">{children}</div>
     </section>
   );

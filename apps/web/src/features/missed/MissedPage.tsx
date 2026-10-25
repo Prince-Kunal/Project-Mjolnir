@@ -36,7 +36,7 @@ export function MissedPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-semibold tracking-tight">Missed</h1>
+      <h1 className="text-[28px] leading-tight md:text-[32px]">Missed</h1>
       <p className="mt-1 text-sm text-muted">
         These stay missed on their day. Reschedule to plan them again, or dismiss them.
       </p>
@@ -70,19 +70,20 @@ export function MissedPage() {
       )}
 
       {!items?.length ? (
-        <div className="mt-8 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
+        <div className="mt-8 rounded-[var(--radius-card)] bg-surface p-6 text-center text-sm text-muted">
           Nothing missed.{' '}
-          <Link to="/" className="font-medium text-accent">
+          <Link
+            to="/"
+            className="font-medium text-text underline decoration-active underline-offset-4"
+          >
             Back to today
           </Link>
         </div>
       ) : (
         [...byDay.entries()].map(([date, list]) => (
           <section key={date} className="mt-6">
-            <h2 className="text-xs font-semibold tracking-wide text-muted uppercase">
-              {formatDay(date)}
-            </h2>
-            <ul className="mt-1 divide-y divide-border">
+            <h2 className="text-[17px] text-text">{formatDay(date)}</h2>
+            <ul className="mt-1 divide-y divide-rule">
               {list.map((i) => {
                 const canMarkDone =
                   i.late_done_until !== null && Date.parse(i.late_done_until) > now;

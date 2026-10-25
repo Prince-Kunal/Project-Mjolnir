@@ -1,17 +1,20 @@
 import type { DayItem } from '../../lib/day.ts';
 import { formatTime } from '../../lib/format.ts';
+import { eventColor } from '../../lib/googleColors.ts';
 
+/** Points as one to three staves, cut like the strokes of a rune: ᛁ ᛁᛁ ᛁᛁᛁ. */
 export function PointDots({ points }: { points: number }) {
   return (
     <span
-      className="flex gap-0.5"
+      className="flex h-4 shrink-0 items-end gap-[3px]"
       aria-label={`${points} point${points === 1 ? '' : 's'}`}
       role="img"
     >
       {[1, 2, 3].map((p) => (
         <span
           key={p}
-          className={`size-1.5 rounded-full ${p <= points ? 'bg-accent' : 'bg-surface-2'}`}
+          className={`w-[3px] rounded-full ${p <= points ? 'bg-text' : 'bg-active'}`}
+          style={{ height: 8 + p * 2.5 }}
         />
       ))}
     </span>
@@ -28,19 +31,37 @@ interface Props {
   onOpen(item: DayItem): void;
 }
 
+/**
+ * One block, task or habit: its time on the left edge, the Google colour that set its points, the
+ * box, the title with its tags, and the points as staves.
+ */
 export function ItemRow({ item, timeZone, isToday, now, onToggle, onOpen }: Props) {
   const done = item.status === 'done';
   const missed = item.status === 'missed';
   const locked = item.finalized;
   const overdue =
     isToday && item.status === 'pending' && item.end_at !== null && Date.parse(item.end_at) < now;
-  const time =
-    item.start_at && !item.is_all_day && item.source === 'calendar'
-      ? `${formatTime(item.start_at, timeZone)}–${item.end_at ? formatTime(item.end_at, timeZone) : ''}`
-      : null;
+  const timed = item.start_at && !item.is_all_day && item.source === 'calendar';
+  const start = timed ? formatTime(item.start_at!, timeZone) : null;
+  const end = timed && item.end_at ? formatTime(item.end_at, timeZone) : null;
+  const colour =
+    item.source === 'calendar' ? eventColor(item.color_key, item.calendar_color) : null;
 
   return (
-    <li className="flex items-center gap-3 py-2.5">
+    <li className="group flex items-center gap-3 py-3 md:gap-4">
+      <span className="hidden w-[52px] shrink-0 text-right leading-tight tabular-nums md:block">
+        {start && (
+          <>
+            <span className="block text-[15px] text-muted">{start}</span>
+            <span className="block text-[13px] text-faint">{end}</span>
+          </>
+        )}
+      </span>
+      <span
+        className="h-9 w-1 shrink-0 rounded-full"
+        style={{ background: colour ?? 'var(--color-active)' }}
+        aria-hidden
+      />
       <button
         type="button"
         role="checkbox"
@@ -48,16 +69,16 @@ export function ItemRow({ item, timeZone, isToday, now, onToggle, onOpen }: Prop
         aria-label={`${done ? 'Untick' : 'Tick'} ${item.title}`}
         disabled={locked}
         onClick={() => onToggle(item)}
-        className={`flex size-6 shrink-0 items-center justify-center rounded-md border-2 transition ${
+        className={`flex size-[26px] shrink-0 items-center justify-center rounded-[8px] border-2 transition duration-150 active:scale-90 ${
           done
-            ? 'border-band-excellent bg-band-excellent text-bg'
+            ? 'border-text text-text'
             : missed
-              ? 'border-band-not-good/60'
-              : 'border-muted hover:border-text'
+              ? 'border-band-not-good/70'
+              : 'border-border hover:border-muted'
         } disabled:cursor-not-allowed disabled:opacity-60`}
       >
         {done && (
-          <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
+          <svg viewBox="0 0 16 16" className="mj-rise size-4" aria-hidden>
             <path
               d="M3 8.5l3.2 3L13 4.5"
               fill="none"
@@ -71,18 +92,22 @@ export function ItemRow({ item, timeZone, isToday, now, onToggle, onOpen }: Prop
       </button>
 
       <button type="button" onClick={() => onOpen(item)} className="min-w-0 flex-1 text-left">
-        <span className={`block truncate text-sm ${done ? 'text-muted line-through' : ''}`}>
+        <span
+          className={`block truncate text-[17px] leading-snug transition-colors ${done ? 'text-faint line-through decoration-faint/60' : 'group-hover:text-bone'}`}
+        >
           {item.title || 'Untitled'}
         </span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-          {time && <span className="tabular-nums">{time}</span>}
-          {overdue && <span className="font-medium text-band-fair">Overdue</span>}
-          {missed && <span className="font-medium text-band-not-good">Missed</span>}
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[14px] text-faint">
+          {start && (
+            <span className="tabular-nums md:hidden">
+              {start}–{end}
+            </span>
+          )}
+          {overdue && <span className="text-band-fair">Overdue</span>}
+          {missed && <span className="text-band-not-good">Missed</span>}
           {item.marked_late && <span>Marked late</span>}
           {item.tags.map((t) => (
-            <span key={t.id} className="rounded bg-surface-2 px-1.5 py-px">
-              #{t.name}
-            </span>
+            <span key={t.id}>#{t.name}</span>
           ))}
         </span>
       </button>

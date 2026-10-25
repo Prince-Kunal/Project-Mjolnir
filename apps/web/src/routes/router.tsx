@@ -39,6 +39,12 @@ export const appRoutes: RouteObject[] = [
 ];
 
 export const routes: RouteObject[] = [
+  // The public landing page; charts and Lenis aside, it carries its own pictures, so it loads alone.
+  {
+    path: '/welcome',
+    lazy: () =>
+      import('../features/landing/LandingPage.tsx').then((m) => ({ Component: m.LandingPage })),
+  },
   { path: '/sign-in', element: <SignInPage /> },
   {
     element: <RequireAuth />,

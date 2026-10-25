@@ -59,7 +59,7 @@ export function DataCard() {
           </Button>
         </div>
 
-        <div className="border-t border-border pt-4">
+        <div className="border-t border-rule pt-4">
           {!confirming ? (
             <Button
               variant="ghost"
@@ -69,7 +69,7 @@ export function DataCard() {
               Delete account…
             </Button>
           ) : (
-            <div className="flex flex-col gap-3 rounded-lg border border-band-not-good/40 p-3">
+            <div className="flex flex-col gap-3 rounded-[var(--radius-inner)] bg-[#2c1a17] p-4">
               <p>
                 This stops syncing, removes Mjolnir’s access to your Google account, and deletes
                 every item, score, deadline and note. Your Google Calendar events stay as they are.
@@ -80,7 +80,7 @@ export function DataCard() {
                 <input
                   value={typed}
                   onChange={(e) => setTyped(e.target.value)}
-                  className="w-40 rounded-lg border border-border bg-surface-2 px-3 py-1.5"
+                  className="w-40 rounded-[var(--radius-inner)] bg-surface-2 px-3 py-1.5"
                 />
               </label>
               <div className="flex gap-2">

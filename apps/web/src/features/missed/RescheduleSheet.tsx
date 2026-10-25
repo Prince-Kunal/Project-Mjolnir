@@ -137,7 +137,7 @@ function TaskDays({ item, today, onDone }: { item: MissedItem; today: string; on
             min={today}
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+            className="rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2"
           />
         </label>
         <Button type="submit" variant="secondary" disabled={!date || reschedule.isPending}>

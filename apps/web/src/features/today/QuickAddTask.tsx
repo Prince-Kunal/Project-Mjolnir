@@ -28,13 +28,9 @@ export function QuickAddTask({
         onChange={(e) => setText(e.target.value)}
         placeholder={placeholder}
         aria-label="New task"
-        className="min-w-0 flex-1 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm placeholder:text-muted focus:border-accent focus:outline-none"
+        className="min-w-0 flex-1 rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 text-sm placeholder:text-muted focus:outline-2 focus:outline-bone/50"
       />
-      <div
-        role="radiogroup"
-        aria-label="Points"
-        className="flex overflow-hidden rounded-lg border border-border"
-      >
+      <div role="radiogroup" aria-label="Points" className="flex rounded-full bg-surface-2 p-1">
         {[1, 2, 3].map((p) => (
           <button
             key={p}
@@ -42,7 +38,7 @@ export function QuickAddTask({
             role="radio"
             aria-checked={points === p}
             onClick={() => setPoints(p)}
-            className={`w-8 py-2 text-sm ${points === p ? 'bg-accent font-semibold text-bg' : 'text-muted'}`}
+            className={`w-8 py-2 text-sm ${points === p ? 'rounded-full bg-text font-semibold text-bg' : 'text-muted'}`}
           >
             {p}
           </button>
@@ -51,7 +47,7 @@ export function QuickAddTask({
       <button
         type="submit"
         disabled={!text.trim() || create.isPending}
-        className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-bg disabled:opacity-40"
+        className="h-10 rounded-full bg-primary px-4 text-sm font-medium text-on-primary transition hover:bg-bone disabled:opacity-40"
       >
         Add
       </button>

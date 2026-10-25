@@ -25,7 +25,7 @@ export function YearHeatmap({ year }: { year: number }) {
   return (
     <section className="mt-6" aria-label={`Days of ${year} by band`}>
       <div ref={scroller} className="overflow-x-auto pb-1">
-        <div className="relative mb-1 h-4 text-[10px] text-muted" aria-hidden>
+        <div className="relative mb-1 h-4 text-[12px] text-muted" aria-hidden>
           {MONTHS.map((m, i) => {
             const day = Math.round(
               (Date.parse(`${year}-${String(i + 1).padStart(2, '0')}-01`) - Date.parse(jan1)) /

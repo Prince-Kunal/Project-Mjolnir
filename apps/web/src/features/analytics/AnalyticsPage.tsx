@@ -8,6 +8,7 @@ import {
   ComposedChart,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -23,7 +24,7 @@ import {
   useMisses,
   useTrend,
 } from '../../lib/analytics.ts';
-import { BAND_COLOR, BAND_LABEL } from '../../lib/bands.ts';
+import { BAND_LABEL } from '../../lib/bands.ts';
 import { useDay } from '../../lib/day.ts';
 import { formatDayMonth, formatMinutes, formatWeekday } from '../../lib/format.ts';
 import { useAreas, useProfile } from '../../lib/queries.ts';
@@ -51,13 +52,13 @@ export function AnalyticsPage() {
   const from = weekKey(addDays(to, -(range.days - 1)), profile.week_start);
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
+        <h1 className="text-[28px] leading-tight md:text-[32px]">Analytics</h1>
         <div
           role="radiogroup"
           aria-label="Range"
-          className="flex rounded-lg border border-border p-0.5 text-xs"
+          className="flex rounded-full bg-surface-2 p-1 text-sm"
         >
           {RANGES.map((r) => (
             <button
@@ -65,7 +66,7 @@ export function AnalyticsPage() {
               role="radio"
               aria-checked={rangeKey === r.key}
               onClick={() => setRangeKey(r.key)}
-              className={`rounded-md px-3 py-1 ${rangeKey === r.key ? 'bg-surface-2 font-medium text-text' : 'text-muted'}`}
+              className={`rounded-md px-3 py-1 ${rangeKey === r.key ? 'bg-text font-medium text-bg' : 'text-muted'}`}
             >
               {r.label}
             </button>
@@ -114,7 +115,7 @@ function Report({ from, to }: { from: string; to: string }) {
         title="Daily success rate"
         legend={
           <>
-            <LegendKey color="var(--color-band-excellent)" label="Daily rate (coloured by band)" />
+            <LegendKey color={RATE_BAR} label="Daily rate" />
             <LegendKey color="var(--color-accent)" label="7-day average" line />
           </>
         }
@@ -163,7 +164,7 @@ function Report({ from, to }: { from: string; to: string }) {
                   isAnimationActive={false}
                   dataKey="done"
                   name="Done"
-                  fill={AREA_COLORS[0]}
+                  fill="var(--color-accent)"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={18}
                 />
@@ -214,7 +215,7 @@ function Report({ from, to }: { from: string; to: string }) {
         </Panel>
         <Panel title="Reschedule chains" note="Missed tasks moved again and again">
           {misses.data.chains.length ? (
-            <ul className="divide-y divide-border text-sm">
+            <ul className="divide-y divide-rule text-sm">
               {misses.data.chains.slice(0, 8).map((c) => (
                 <li key={c.id} className="flex items-center gap-3 py-2">
                   <span className="min-w-0 flex-1 truncate">{c.title}</span>
@@ -247,28 +248,60 @@ function Report({ from, to }: { from: string; to: string }) {
   );
 }
 
-const PLANNED = '#5b6275';
+const PLANNED = '#5f5a53';
+const RATE_BAR = '#6d675f';
+const RATE_OPEN = '#3d3934';
 
 function RateChart({ days }: { days: TrendDay[] }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <ComposedChart data={days} barCategoryGap={days.length > 120 ? 0 : 2}>
+      <ComposedChart
+        data={days}
+        barCategoryGap={days.length > 120 ? 0 : 2}
+        margin={{ top: 4, right: 72, bottom: 0, left: 0 }}
+      >
         {GRID}
         <XAxis dataKey="date" tickFormatter={formatDayMonth} minTickGap={24} {...AXIS} />
         <YAxis {...AXIS} width={36} domain={[0, 100]} ticks={[0, 50, 75, 85, 100]} unit="%" />
         <Tooltip cursor={{ fill: 'var(--color-surface-2)' }} content={<RateTip />} />
-        <Bar dataKey="rate" name="Daily rate" radius={[3, 3, 0, 0]} maxBarSize={16}>
+        {/* The band edges as reference lines; the bars stay neutral so the one hue is the average. */}
+        {(
+          [
+            [50, 'Fair'],
+            [75, 'Good'],
+            [85, 'Excellent'],
+          ] as const
+        ).map(([y, label]) => (
+          <ReferenceLine
+            key={y}
+            y={y}
+            stroke="var(--color-border)"
+            strokeDasharray="3 3"
+            label={{
+              value: label,
+              position: 'right',
+              fill: 'var(--color-faint)',
+              fontSize: 12,
+            }}
+          />
+        ))}
+        <Bar
+          dataKey="rate"
+          name="Daily rate"
+          radius={[3, 3, 0, 0]}
+          maxBarSize={16}
+          isAnimationActive={false}
+        >
           {days.map((d) => (
             <Cell
               key={d.date}
-              fill={d.planned > 0 ? BAND_COLOR[d.band] : 'var(--color-surface-2)'}
-              fillOpacity={d.finalized ? 1 : 0.45}
+              fill={!d.planned ? 'transparent' : d.finalized ? RATE_BAR : RATE_OPEN}
             />
           ))}
         </Bar>
         <Line
           isAnimationActive={false}
-          type="monotone"
+          type="linear"
           dataKey="avg7"
           name="7-day average"
           stroke="var(--color-accent)"
@@ -426,7 +459,7 @@ function ChartTip({
 
 function TipBox({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs shadow-lg">
+    <div className="rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 text-xs shadow-lg">
       {title && <p className="mb-1 font-medium">{title}</p>}
       {children}
     </div>
@@ -445,7 +478,7 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="min-w-0 rounded-xl border border-border bg-surface p-4">
+    <section className="min-w-0 rounded-[var(--radius-card)] bg-surface p-4">
       <h2 className="text-sm font-semibold">{title}</h2>
       {note && <p className="text-xs text-muted">{note}</p>}
       {legend && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">{legend}</div>}
@@ -469,9 +502,9 @@ function LegendKey({ color, label, line }: { color: string; label: string; line?
 
 function StatTile({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <div className="rounded-xl border border-border bg-surface px-4 py-3">
+    <div className="rounded-[var(--radius-card)] bg-surface px-4 py-3">
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-1 font-display text-[28px] tabular-nums">{value}</p>
       <p className="mt-0.5 text-xs text-muted">{note}</p>
     </div>
   );

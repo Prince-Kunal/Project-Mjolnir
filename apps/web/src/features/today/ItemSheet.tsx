@@ -175,7 +175,7 @@ function ItemDetails({
             onBlur={saveTitle}
             onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
             aria-label="Title"
-            className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2"
+            className="w-full rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2"
           />
         </label>
       )}
@@ -207,7 +207,7 @@ function ItemDetails({
             <div
               role="radiogroup"
               aria-label="Points"
-              className="flex w-40 overflow-hidden rounded-lg border border-border"
+              className="flex w-44 rounded-full bg-surface-2 p-1"
             >
               {[1, 2, 3].map((p) => (
                 <button
@@ -216,7 +216,7 @@ function ItemDetails({
                   aria-checked={item.points === p}
                   disabled={editEvent.isPending}
                   onClick={() => item.points !== p && setPoints(p)}
-                  className={`flex-1 py-1.5 ${item.points === p ? 'bg-accent font-semibold text-bg' : 'text-muted'}`}
+                  className={`h-8 flex-1 rounded-full transition ${item.points === p ? 'bg-text font-semibold text-bg' : 'text-muted hover:text-text'}`}
                 >
                   {p}
                 </button>
@@ -244,7 +244,7 @@ function ItemDetails({
           onChange={(e) =>
             update.mutate({ id: item.id, patch: { area_id: e.target.value || null } })
           }
-          className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2"
+          className="w-full rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2"
         >
           <option value="">No area</option>
           {areas?.map((a) => (
@@ -297,7 +297,7 @@ function ItemDetails({
                 if (v !== item.planned_minutes)
                   update.mutate({ id: item.id, patch: { planned_minutes: v } });
               }}
-              className="w-24 rounded-lg border border-border bg-surface-2 px-3 py-2 tabular-nums"
+              className="w-24 rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 tabular-nums"
             />
             <span className="text-muted">minutes</span>
           </label>
@@ -341,14 +341,14 @@ function ItemDetails({
               value={when.date}
               onChange={(e) => setWhen({ ...when, date: e.target.value })}
               aria-label="Day"
-              className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+              className="rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2"
             />
             <input
               type="time"
               value={when.start}
               onChange={(e) => setWhen({ ...when, start: e.target.value })}
               aria-label="Start"
-              className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+              className="rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2"
             />
             <span className="pb-2 text-muted">to</span>
             <input
@@ -356,7 +356,7 @@ function ItemDetails({
               value={when.end}
               onChange={(e) => setWhen({ ...when, end: e.target.value })}
               aria-label="End"
-              className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+              className="rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2"
             />
             <Button
               variant="secondary"
@@ -412,7 +412,7 @@ function ItemDetails({
               value={minutes}
               onChange={(e) => setMinutes(Math.max(0, Number(e.target.value)))}
               aria-label="Actual minutes"
-              className="w-24 rounded-lg border border-border bg-surface-2 px-3 py-2 tabular-nums"
+              className="w-24 rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 tabular-nums"
             />
             <span className="text-muted">minutes</span>
           </div>
@@ -454,7 +454,7 @@ function ItemDetails({
             href={googleEventUrl(item.google_event_id, item.google_calendar_id)}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center rounded-lg border border-border bg-surface-2 px-4 py-2 font-medium"
+            className="inline-flex items-center rounded-[var(--radius-inner)] bg-surface-2 px-4 py-2 font-medium"
           >
             Open in Google Calendar
           </a>

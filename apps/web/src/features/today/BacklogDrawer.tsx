@@ -32,14 +32,14 @@ export function BacklogDrawer({
       ) : !items?.length ? (
         <p className="mt-4 text-sm text-muted">The backlog is empty.</p>
       ) : (
-        <ul className="mt-3 divide-y divide-border">
+        <ul className="mt-3 divide-y divide-rule">
           {items.map((i) => (
             <li key={i.id} className="flex items-center gap-3 py-2.5 text-sm">
               <span className="min-w-0 flex-1 truncate">{i.title}</span>
               <PointDots points={i.points} />
               <button
                 onClick={() => update.mutate({ id: i.id, patch: { logical_date: today } })}
-                className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-muted"
+                className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium hover:bg-active"
               >
                 Do today
               </button>

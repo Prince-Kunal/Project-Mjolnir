@@ -16,7 +16,7 @@ export function MissGrid({ slots }: { slots: MissesReport['slots'] }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="border-separate border-spacing-0.5 text-[10px]">
+      <table className="border-separate border-spacing-0.5 text-[12px]">
         <thead>
           <tr>
             <th />
@@ -56,7 +56,7 @@ export function MissGrid({ slots }: { slots: MissesReport['slots'] }) {
           ))}
         </tbody>
       </table>
-      <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted">
+      <div className="mt-2 flex items-center gap-1.5 text-[12px] text-muted">
         <span>0%</span>
         {[0, 0.25, 0.5, 0.75, 1].map((r) => (
           <span

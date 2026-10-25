@@ -17,3 +17,4 @@ supabase/functions/.env
 test-results/
 playwright-report/
 !apps/web/.env.production
+.taste-skill/

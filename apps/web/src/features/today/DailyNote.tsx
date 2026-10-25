@@ -33,10 +33,10 @@ export function DailyNote({ date, initial }: { date: string; initial: string }) 
   }
 
   return (
-    <section className="mt-8">
+    <section className="rounded-[var(--radius-card)] bg-surface p-5">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-xs font-semibold tracking-wide text-muted uppercase">Note</h2>
-        <span className="text-xs text-muted" aria-live="polite">
+        <h2 className="text-[17px]">Note</h2>
+        <span className="text-[14px] text-faint" aria-live="polite">
           {save.isPending ? 'Saving…' : save.isError ? 'Not saved' : save.isSuccess ? 'Saved' : ''}
         </span>
       </div>
@@ -47,7 +47,7 @@ export function DailyNote({ date, initial }: { date: string; initial: string }) 
         maxLength={10000}
         placeholder="How did today go?"
         aria-label="Daily note"
-        className="mt-2 w-full resize-y rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm placeholder:text-muted focus:border-accent focus:outline-none"
+        className="mt-3 w-full resize-y rounded-[var(--radius-inner)] bg-surface-2 px-3.5 py-3 text-[16px] leading-relaxed placeholder:text-faint focus:outline-2 focus:outline-bone/50"
       />
     </section>
   );

@@ -17,7 +17,7 @@ export function UnassignedPage() {
       <Link to="/deadlines" className="text-sm text-muted hover:text-text">
         ← Deadlines
       </Link>
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight">Unassigned</h1>
+      <h1 className="mt-3 text-[28px] leading-tight md:text-[32px]">Unassigned</h1>
       <p className="mt-1 text-sm text-muted">
         Untagged blocks that mention a tag. Link adds the tag here without changing the Google
         title.
@@ -32,11 +32,11 @@ export function UnassignedPage() {
           <Notice tone="error">Could not load suggestions. Try again.</Notice>
         </div>
       ) : suggestions?.length === 0 ? (
-        <p className="mt-8 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
+        <p className="mt-8 rounded-[var(--radius-card)] bg-surface p-6 text-center text-sm text-muted">
           Nothing to sort. New suggestions appear when a block mentions a tag you use.
         </p>
       ) : (
-        <ul className="mt-6 divide-y divide-border">
+        <ul className="mt-6 divide-y divide-rule">
           {suggestions?.map((s) => (
             <li key={s.id} className="flex flex-wrap items-center gap-3 py-3 text-sm">
               <div className="min-w-0 flex-1">

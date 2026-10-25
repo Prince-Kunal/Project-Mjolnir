@@ -11,7 +11,7 @@ import {
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const field =
-  'rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm focus:border-accent focus:outline-none';
+  'rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 text-sm focus:outline-2 focus:outline-bone/50';
 
 /** Weekday bitmask, Monday = bit 0 (section 7). */
 function WeekdayPicker({ value, onChange }: { value: number; onChange(v: number): void }) {
@@ -29,7 +29,7 @@ function WeekdayPicker({ value, onChange }: { value: number; onChange(v: number)
               const next = value ^ (1 << i);
               if (next) onChange(next);
             }}
-            className={`size-7 rounded-md text-xs font-medium ${on ? 'bg-accent text-bg' : 'bg-surface-2 text-muted'}`}
+            className={`size-8 rounded-full text-xs font-medium transition ${on ? 'bg-text text-bg' : 'bg-surface-2 text-muted hover:text-text'}`}
           >
             {d}
           </button>
@@ -41,11 +41,7 @@ function WeekdayPicker({ value, onChange }: { value: number; onChange(v: number)
 
 function PointsPicker({ value, onChange }: { value: number; onChange(p: number): void }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label="Points"
-      className="flex overflow-hidden rounded-lg border border-border"
-    >
+    <div role="radiogroup" aria-label="Points" className="flex rounded-full bg-surface-2 p-1">
       {[1, 2, 3].map((p) => (
         <button
           key={p}
@@ -53,7 +49,7 @@ function PointsPicker({ value, onChange }: { value: number; onChange(p: number):
           role="radio"
           aria-checked={value === p}
           onClick={() => onChange(p)}
-          className={`w-8 py-1.5 text-sm ${value === p ? 'bg-accent font-semibold text-bg' : 'text-muted'}`}
+          className={`w-8 py-1.5 text-sm ${value === p ? 'rounded-full bg-text font-semibold text-bg' : 'text-muted'}`}
         >
           {p}
         </button>
@@ -128,7 +124,7 @@ export function HabitsEditor() {
   return (
     <div className="flex flex-col gap-3">
       {habits?.length ? (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-rule">
           {habits.map((h) => (
             <HabitRow key={h.id} habit={h} />
           ))}

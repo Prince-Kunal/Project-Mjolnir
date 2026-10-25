@@ -36,12 +36,12 @@ export function SundayReviewPage() {
   const go = (w: string) => setParams(w === latest ? {} : { week: w });
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-semibold tracking-tight">Sunday review</h1>
+    <div>
+      <h1 className="text-[28px] leading-tight md:text-[32px]">Sunday review</h1>
       <div className="mt-2 flex items-center gap-1 text-sm">
         <button
           onClick={() => go(addDays(week, -7))}
-          className="rounded-md px-2 py-1 text-muted hover:bg-surface-2 hover:text-text"
+          className="rounded-full px-2.5 py-1 text-faint hover:bg-surface-2 hover:text-text"
           aria-label="Previous week"
         >
           ‹
@@ -52,7 +52,7 @@ export function SundayReviewPage() {
         <button
           onClick={() => go(addDays(week, 7))}
           disabled={week >= latest}
-          className="rounded-md px-2 py-1 text-muted hover:bg-surface-2 hover:text-text disabled:opacity-30"
+          className="rounded-full px-2.5 py-1 text-faint hover:bg-surface-2 hover:text-text disabled:opacity-30"
           aria-label="Next week"
         >
           ›
@@ -96,125 +96,130 @@ function Review({ week, today, streak }: { week: string; today: string; streak: 
   const notes = rows.filter((d) => d.note?.trim());
 
   return (
-    <>
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        <Tile
-          label="Success"
-          value={planned ? `${rate}%` : '—'}
-          note={planned ? BAND_LABEL[bandFor(rate)] : 'no closed days'}
-          color={planned ? BAND_COLOR[bandFor(rate)] : undefined}
-        />
-        <Tile label="Days counted" value={`${counted} / ${closed.length}`} note="50% or more" />
-        <Tile label="Points" value={`${done} / ${planned}`} note={`streak now ${streak}`} />
-      </div>
+    <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+      <div className="min-w-0">
+        <div className="grid grid-cols-3 gap-3">
+          <Tile
+            label="Success"
+            value={planned ? `${rate}%` : '—'}
+            note={planned ? BAND_LABEL[bandFor(rate)] : 'no closed days'}
+            color={planned ? BAND_COLOR[bandFor(rate)] : undefined}
+          />
+          <Tile label="Days counted" value={`${counted} / ${closed.length}`} note="50% or more" />
+          <Tile label="Points" value={`${done} / ${planned}`} note={`streak now ${streak}`} />
+        </div>
 
-      <ol className="mt-4 grid grid-cols-7 gap-1.5" aria-label="Days">
-        {days.data.map((d: DayRow) => (
-          <li key={d.date} className="text-center">
-            <p className="text-[11px] text-muted">{formatWeekday(d.date)}</p>
-            <div
-              className="mt-1 h-9 rounded-md"
-              title={d.planned ? `${d.rate}%, ${BAND_LABEL[d.band]}` : 'Nothing planned'}
-              style={{
-                background:
-                  d.date > today || !d.planned ? 'var(--color-surface-2)' : BAND_COLOR[d.band],
-                opacity: d.finalized ? 1 : 0.5,
-              }}
-            />
-            <p className="mt-1 text-[11px] tabular-nums">
-              {d.date > today || !d.planned ? '' : `${Math.round(d.rate)}%`}
+        <ol className="mt-4 grid grid-cols-7 gap-1.5" aria-label="Days">
+          {days.data.map((d: DayRow) => (
+            <li key={d.date} className="text-center">
+              <p className="text-[12px] text-muted">{formatWeekday(d.date)}</p>
+              <div
+                className="mt-1 h-9 rounded-md"
+                title={d.planned ? `${d.rate}%, ${BAND_LABEL[d.band]}` : 'Nothing planned'}
+                style={{
+                  background:
+                    d.date > today || !d.planned ? 'var(--color-surface-2)' : BAND_COLOR[d.band],
+                  opacity: d.finalized ? 1 : 0.5,
+                }}
+              />
+              <p className="mt-1 text-[12px] tabular-nums">
+                {d.date > today || !d.planned ? '' : `${Math.round(d.rate)}%`}
+              </p>
+            </li>
+          ))}
+        </ol>
+
+        <ul className="mt-5 flex flex-col gap-1.5 text-sm">
+          {best && (
+            <li>
+              Best day: <strong>{formatWeekday(best.date)}</strong>, {best.rate}% ({best.done} of{' '}
+              {best.planned} points).
+            </li>
+          )}
+          {worst && worst.date !== best?.date && (
+            <li>
+              Toughest day: <strong>{formatWeekday(worst.date)}</strong>, {worst.rate}%.
+            </li>
+          )}
+          {missedPoints > 0 && (
+            <li>
+              {missedPoints} point{missedPoints === 1 ? '' : 's'} of blocks missed
+              {worstSlot &&
+                `; most often around ${String(worstSlot.hour).padStart(2, '0')}:00 on ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][worstSlot.weekday - 1]}`}
+              .
+            </li>
+          )}
+          {misses.data.estimate.ratio !== null && (
+            <li>
+              Tasks took {Math.round(misses.data.estimate.ratio * 100)}% of their planned time.
+            </li>
+          )}
+        </ul>
+
+        {areas.data.areas.length > 0 && (
+          <Section title="By area">
+            <ul className="divide-y divide-rule text-sm">
+              {areas.data.areas.map((a) => (
+                <li key={a.area_id ?? 'none'} className="flex items-center gap-3 py-2">
+                  <span className="flex-1">{areaName(a.area_id)}</span>
+                  <span className="text-muted tabular-nums">
+                    {a.done} / {a.planned} points
+                  </span>
+                  <span className="w-16 text-right text-xs text-muted tabular-nums">
+                    {formatMinutes(a.minutes_done)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+
+        {areas.data.tags.length > 0 && (
+          <Section title="Time by tag">
+            <p className="text-sm">
+              {areas.data.tags
+                .slice(0, 5)
+                .map((t) => `#${t.name} ${formatMinutes(t.minutes_done)}`)
+                .join(' · ')}
             </p>
-          </li>
-        ))}
-      </ol>
-
-      <ul className="mt-5 flex flex-col gap-1.5 text-sm">
-        {best && (
-          <li>
-            Best day: <strong>{formatWeekday(best.date)}</strong>, {best.rate}% ({best.done} of{' '}
-            {best.planned} points).
-          </li>
+          </Section>
         )}
-        {worst && worst.date !== best?.date && (
-          <li>
-            Toughest day: <strong>{formatWeekday(worst.date)}</strong>, {worst.rate}%.
-          </li>
+      </div>
+      <div className="flex min-w-0 flex-col gap-6">
+        {comingUp.length > 0 && (
+          <Section title="Deadlines coming up">
+            <ul className="divide-y divide-rule text-sm">
+              {comingUp.map((d) => (
+                <li key={d.id} className="flex items-center gap-3 py-2">
+                  <Link
+                    to={`/deadlines/${d.id}`}
+                    className="min-w-0 flex-1 truncate hover:text-bone"
+                  >
+                    {d.title}
+                  </Link>
+                  <span className="text-xs text-muted">{dueText(d)}</span>
+                </li>
+              ))}
+            </ul>
+          </Section>
         )}
-        {missedPoints > 0 && (
-          <li>
-            {missedPoints} point{missedPoints === 1 ? '' : 's'} of blocks missed
-            {worstSlot &&
-              `; most often around ${String(worstSlot.hour).padStart(2, '0')}:00 on ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][worstSlot.weekday - 1]}`}
-            .
-          </li>
+
+        {notes.length > 0 && (
+          <Section title="Your notes">
+            <ul className="flex flex-col gap-2 text-sm">
+              {notes.map((d) => (
+                <li key={d.date}>
+                  <span className="text-xs text-muted">{formatWeekday(d.date)}</span>{' '}
+                  <span className="whitespace-pre-wrap">{d.note}</span>
+                </li>
+              ))}
+            </ul>
+          </Section>
         )}
-        {misses.data.estimate.ratio !== null && (
-          <li>Tasks took {Math.round(misses.data.estimate.ratio * 100)}% of their planned time.</li>
-        )}
-      </ul>
 
-      {areas.data.areas.length > 0 && (
-        <Section title="By area">
-          <ul className="divide-y divide-border text-sm">
-            {areas.data.areas.map((a) => (
-              <li key={a.area_id ?? 'none'} className="flex items-center gap-3 py-2">
-                <span className="flex-1">{areaName(a.area_id)}</span>
-                <span className="text-muted tabular-nums">
-                  {a.done} / {a.planned} points
-                </span>
-                <span className="w-16 text-right text-xs text-muted tabular-nums">
-                  {formatMinutes(a.minutes_done)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {areas.data.tags.length > 0 && (
-        <Section title="Time by tag">
-          <p className="text-sm">
-            {areas.data.tags
-              .slice(0, 5)
-              .map((t) => `#${t.name} ${formatMinutes(t.minutes_done)}`)
-              .join(' · ')}
-          </p>
-        </Section>
-      )}
-
-      {comingUp.length > 0 && (
-        <Section title="Deadlines coming up">
-          <ul className="divide-y divide-border text-sm">
-            {comingUp.map((d) => (
-              <li key={d.id} className="flex items-center gap-3 py-2">
-                <Link
-                  to={`/deadlines/${d.id}`}
-                  className="min-w-0 flex-1 truncate hover:text-accent"
-                >
-                  {d.title}
-                </Link>
-                <span className="text-xs text-muted">{dueText(d)}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {notes.length > 0 && (
-        <Section title="Your notes">
-          <ul className="flex flex-col gap-2 text-sm">
-            {notes.map((d) => (
-              <li key={d.date}>
-                <span className="text-xs text-muted">{formatWeekday(d.date)}</span>{' '}
-                <span className="whitespace-pre-wrap">{d.note}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      <Reflection week={week} />
-    </>
+        <Reflection week={week} />
+      </div>
+    </div>
   );
 }
 
@@ -277,7 +282,7 @@ function ReflectionField({
             () => setState('error'),
           );
         }}
-        className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm"
+        className="w-full rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 text-sm"
       />
       <p className="mt-1 h-4 text-xs text-muted" role="status">
         {state === 'saving'
@@ -304,9 +309,9 @@ function Tile({
   color?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface px-3 py-3">
+    <div className="rounded-[var(--radius-card)] bg-surface px-3 py-3">
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-1 font-display text-[24px] tabular-nums">{value}</p>
       <p className="mt-0.5 text-xs" style={{ color: color ?? 'var(--color-muted)' }}>
         {note}
       </p>
@@ -316,8 +321,8 @@ function Tile({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-6">
-      <h2 className="mb-1 text-xs font-semibold tracking-wide text-muted uppercase">{title}</h2>
+    <section className="mt-6 rounded-[var(--radius-card)] bg-surface px-5 py-4 first:mt-0">
+      <h2 className="mb-2 text-[17px] text-text">{title}</h2>
       {children}
     </section>
   );

@@ -1,8 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ScoreRing } from './ScoreRing.tsx';
+import { R, ScoreRing } from './ScoreRing.tsx';
 
-describe('ScoreRing', () => {
+const circumference = 2 * Math.PI * R;
+const arc = (container: HTMLElement) =>
+  Number(container.querySelectorAll('circle')[1]!.getAttribute('stroke-dasharray')!.split(' ')[0]);
+
+describe('ScoreRing (the forge ring)', () => {
   it('announces the rate and band', () => {
     render(<ScoreRing rate={71.4} band="fair" />);
     expect(screen.getByRole('img', { name: 'Success rate 71.4%, Fair' })).toBeInTheDocument();
@@ -11,11 +15,9 @@ describe('ScoreRing', () => {
 
   it('fills the ring in proportion to the rate, capped at 100%', () => {
     const { container, rerender } = render(<ScoreRing rate={50} band="fair" />);
-    const arc = () => container.querySelectorAll('circle')[1]!.getAttribute('stroke-dasharray')!;
-    const circumference = 2 * Math.PI * 34;
-    expect(Number(arc().split(' ')[0])).toBeCloseTo(circumference / 2);
-    rerender(<ScoreRing rate={100} band="excellent" />);
-    expect(Number(arc().split(' ')[0])).toBeCloseTo(circumference);
+    expect(arc(container)).toBeCloseTo(circumference / 2);
+    rerender(<ScoreRing rate={130} band="excellent" />);
+    expect(arc(container)).toBeCloseTo(circumference);
   });
 
   it('colours by band', () => {
@@ -24,5 +26,13 @@ describe('ScoreRing', () => {
       'stroke',
       'var(--color-band-excellent)',
     );
+  });
+
+  it('notches the band edges and lights the ones reached', () => {
+    const { container } = render(<ScoreRing rate={80} band="good" />);
+    const lit = [...container.querySelectorAll('line')].map(
+      (l) => l.getAttribute('stroke') === 'var(--color-text)',
+    );
+    expect(lit).toEqual([true, true, false]); // 50 and 75 reached, 85 not yet
   });
 });

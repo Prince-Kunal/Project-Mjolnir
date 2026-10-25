@@ -17,11 +17,20 @@ function renderAt(path: string) {
 }
 
 describe('AppShell', () => {
-  it('shows every nav entry in the phone tab bar', () => {
+  it('puts the five daily destinations in the phone tab bar', () => {
     renderAt('/');
     const tabs = screen.getByRole('navigation', { name: 'Tabs' });
-    for (const label of ['Today', 'Calendar', 'Week', 'Deadlines', 'Analytics', 'More']) {
+    for (const label of ['Today', 'Calendar', 'Week', 'Deadlines', 'More']) {
       expect(tabs).toHaveTextContent(label);
+    }
+    expect(tabs).not.toHaveTextContent('Analytics');
+  });
+
+  it('carries every destination in the top bar', () => {
+    renderAt('/');
+    const main = screen.getByRole('navigation', { name: 'Main' });
+    for (const label of ['Today', 'Calendar', 'Week', 'Deadlines', 'Analytics']) {
+      expect(main).toHaveTextContent(label);
     }
   });
 

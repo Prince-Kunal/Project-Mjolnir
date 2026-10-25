@@ -76,7 +76,7 @@ function CreateEventForm({
     );
   }
 
-  const field = 'rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm';
+  const field = 'rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 text-sm';
   return (
     <form onSubmit={submit} className="flex flex-col gap-4 text-sm">
       <input
@@ -117,7 +117,7 @@ function CreateEventForm({
         <div
           role="radiogroup"
           aria-label="Points"
-          className="flex w-40 overflow-hidden rounded-lg border border-border"
+          className="flex w-44 rounded-full bg-surface-2 p-1"
         >
           {[1, 2, 3].map((p) => (
             <button
@@ -126,7 +126,7 @@ function CreateEventForm({
               role="radio"
               aria-checked={points === p}
               onClick={() => setPoints(p)}
-              className={`flex-1 py-1.5 ${points === p ? 'bg-accent font-semibold text-bg' : 'text-muted'}`}
+              className={`flex-1 py-1.5 ${points === p ? 'rounded-full bg-text font-semibold text-bg' : 'text-muted'}`}
             >
               {p}
             </button>

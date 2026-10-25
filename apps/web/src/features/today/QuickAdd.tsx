@@ -5,6 +5,7 @@ import { formatDay, formatMinutes, formatShortDay, formatTime } from '../../lib/
 import { useProfile } from '../../lib/queries.ts';
 import { parseQuickAdd } from '../../lib/quickAdd.ts';
 import { useToast } from '../../lib/toast.ts';
+import { useEffects } from '../../lib/effects.ts';
 
 interface Props {
   /** Day for a task when the text names none: the day being viewed. */
@@ -27,6 +28,7 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
   const createTask = useCreateTask();
   const createGoogleTask = useCreateGoogleTask();
   const toast = useToast((s) => s.show);
+  const loki = useEffects((s) => s.loki);
 
   const parsed = useMemo(
     () =>
@@ -91,19 +93,23 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
         <input
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            // Easter egg: name the trickster and he flies through, as he did at the forge.
+            if (/\bloki\b/i.test(e.target.value) && !/\bloki\b/i.test(text)) loki();
+            setText(e.target.value);
+          }}
           autoFocus={autoFocus}
           placeholder="Add… e.g. Gym 7pm 1h #health !2"
           aria-label="Quick add"
-          className="min-w-0 flex-1 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm placeholder:text-muted focus:border-accent focus:outline-none"
+          className="h-11 min-w-0 flex-1 basis-full rounded-full bg-surface-2 sm:basis-auto px-5 text-[16px] placeholder:text-faint focus:outline-2 focus:outline-bone/50"
         />
         <div
           role="radiogroup"
           aria-label="Points"
-          className="flex overflow-hidden rounded-lg border border-border"
+          className="flex h-11 shrink-0 items-center rounded-full bg-surface-2 p-1"
         >
           {([1, 2, 3] as const).map((p) => (
             <button
@@ -113,7 +119,7 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
               aria-checked={effectivePoints === p}
               disabled={parsed?.hasPoints}
               onClick={() => setPoints(p)}
-              className={`w-8 py-2 text-sm disabled:cursor-default ${effectivePoints === p ? 'bg-accent font-semibold text-bg' : 'text-muted'}`}
+              className={`h-9 w-9 rounded-full text-[15px] transition disabled:cursor-default ${effectivePoints === p ? 'bg-text font-semibold text-bg' : 'text-muted hover:text-text'}`}
             >
               {p}
             </button>
@@ -122,13 +128,13 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
         <button
           type="submit"
           disabled={!parsed?.title || pending}
-          className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-bg disabled:opacity-40"
+          className="ml-auto h-11 shrink-0 rounded-full bg-primary px-5 sm:ml-0 text-[15px] font-medium text-on-primary transition hover:bg-bone active:scale-[0.97] disabled:opacity-40"
         >
           Add
         </button>
       </div>
       {parsed && profile && (
-        <p role="status" className="pl-1 text-xs text-muted">
+        <p role="status" className="pl-5 text-[14px] text-faint">
           {tasksMode ? (
             <>
               <span className="font-medium text-text">Google task</span> · {formatDay(taskDate)}

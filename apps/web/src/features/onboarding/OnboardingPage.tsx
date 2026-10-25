@@ -1,6 +1,7 @@
 import { type ColorRule, normalizePrimaries } from '@mjolnir/domain';
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { HammerMark } from '../../components/Mark.tsx';
 import { Button, Card, Loading, Notice } from '../../components/ui.tsx';
 import { connectErrorMessage, type ConnectResult } from '../../lib/googleConnect.ts';
 import {
@@ -33,33 +34,126 @@ export function OnboardingPage() {
   if (!STEPS.includes(step as Step)) return <Navigate to="/onboarding" replace />;
 
   const index = STEPS.indexOf(step as Step);
+  const plate = PLATES[index]!;
   return (
-    <main className="mx-auto flex min-h-full max-w-xl flex-col px-4 py-8">
-      <p className="text-xs font-medium tracking-wide text-muted uppercase">
-        Step {index + 2} of {TOTAL}
-      </p>
-      <div className="mt-2 mb-6 flex gap-1.5" aria-hidden>
-        {Array.from({ length: TOTAL }, (_, i) => (
-          <span
-            key={i}
-            className={`h-1 flex-1 rounded-full ${i <= index + 1 ? 'bg-accent' : 'bg-surface-2'}`}
+    <main className="grid min-h-svh gap-3 bg-bg p-3 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+      <aside className="flex flex-col gap-6 rounded-[20px] bg-surface p-6 lg:sticky lg:top-3 lg:h-[calc(100svh-24px)] lg:p-8">
+        <span className="flex items-center gap-2.5 font-display text-[24px]">
+          <HammerMark className="size-[0.95em] text-bone" />
+          Mjölnir
+        </span>
+        <div>
+          <p className="text-sm text-muted">
+            Step {index + 2} of {TOTAL}
+          </p>
+          <ol className="mt-3 hidden flex-col gap-1.5 text-[16px] lg:flex">
+            <li className="flex items-center gap-2.5 text-faint">
+              <StepTick /> Sign in
+            </li>
+            {STEPS.map((s, i) => (
+              <li
+                key={s}
+                aria-current={i === index ? 'step' : undefined}
+                className={`flex items-center gap-2.5 ${i === index ? 'text-text' : i < index ? 'text-faint' : 'text-muted'}`}
+              >
+                {i < index ? (
+                  <StepTick />
+                ) : (
+                  <span
+                    className={`size-2 rounded-full ${i === index ? 'bg-text' : 'bg-active'} mx-[3px]`}
+                  />
+                )}
+                {STEP_NAMES[s]}
+              </li>
+            ))}
+          </ol>
+          <div className="mt-3 flex gap-1.5 lg:hidden" aria-hidden>
+            {Array.from({ length: TOTAL }, (_, i) => (
+              <span
+                key={i}
+                className={`h-1 flex-1 rounded-full ${i <= index + 1 ? 'bg-text' : 'bg-surface-2'}`}
+              />
+            ))}
+          </div>
+        </div>
+        <figure className="relative mt-auto hidden overflow-hidden rounded-[14px] bg-bone lg:block">
+          <img
+            key={plate.src}
+            src={plate.src}
+            alt={plate.alt}
+            className="mj-rise aspect-[4/3] w-full object-contain p-5 mix-blend-multiply"
           />
-        ))}
-      </div>
-      {step === 'connect' && <ConnectStep />}
-      {step === 'calendars' && <CalendarsStep />}
-      {step === 'colours' && <ColoursStep />}
-      {step === 'day' && <DayStep />}
-      {step === 'areas' && <AreasStep />}
+          <figcaption className="px-4 pb-3 text-[13px] text-[#4a4640]">{plate.caption}</figcaption>
+        </figure>
+      </aside>
+      <section className="mx-auto w-full max-w-[680px] px-2 py-6 md:py-12">
+        {step === 'connect' && <ConnectStep />}
+        {step === 'calendars' && <CalendarsStep />}
+        {step === 'colours' && <ColoursStep />}
+        {step === 'day' && <DayStep />}
+        {step === 'areas' && <AreasStep />}
+      </section>
     </main>
+  );
+}
+
+const STEP_NAMES: Record<Step, string> = {
+  connect: 'Connect Google Calendar',
+  calendars: 'Pick calendars',
+  colours: 'Colours and points',
+  day: 'Your day',
+  areas: 'Areas and habits',
+};
+
+/** One picture of the hammer's world per step (credited on the landing page). */
+const PLATES = [
+  {
+    src: '/landing/thor-s-hammer-erikstorp-east-gotland.jpg',
+    alt: 'Engraving of a silver hammer amulet',
+    caption: 'Hammer amulet, Erikstorp. Engraving, 1878.',
+  },
+  {
+    src: '/landing/torshammare-hange-historiska-museet-dig-55081.jpg',
+    alt: 'A small silver hammer pendant',
+    caption: 'Hammer pendant, silver. Swedish History Museum.',
+  },
+  {
+    src: '/landing/torshammare-historiska-museet-dig-56038.jpg',
+    alt: 'An iron hammer pendant',
+    caption: 'Hammer pendant, iron. Swedish History Museum.',
+  },
+  {
+    src: '/landing/once-again-the-buzzing-fly-came-in.jpg',
+    alt: 'Ink drawing of a dwarf at the bellows with a fly circling',
+    caption: 'Brokkr at the bellows. Arthur Rackham, 1901.',
+  },
+  {
+    src: '/landing/thor-destroys-the-giant-thrym.jpg',
+    alt: 'Line drawing of Thor raising his hammer',
+    caption: 'Thor takes his hammer back. Lorenz Frølich, 1906.',
+  },
+] as const;
+
+function StepTick() {
+  return (
+    <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
+      <path
+        d="M3 8.5l3.2 3L13 4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
 function StepHeader({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <header className="mb-5">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      <p className="mt-2 text-sm text-muted">{children}</p>
+      <h1 className="text-[28px] leading-tight md:text-[32px]">{title}</h1>
+      <p className="mt-3 text-[17px] text-muted">{children}</p>
     </header>
   );
 }
@@ -164,11 +258,27 @@ function ColoursStep() {
   );
 }
 
+/** What the visitor chose in the landing page's first-step dialog, if anything. */
+function signupChoice(): Partial<DayValues> {
+  try {
+    const raw = sessionStorage.getItem('mjolnir.signup');
+    if (!raw) return {};
+    const { mode, close } = JSON.parse(raw) as { mode?: string; close?: string };
+    const hour = close ? Number(close.split(':')[0]) : NaN;
+    return {
+      ...(mode === 'events' || mode === 'tasks' ? { google_item_type: mode } : {}),
+      ...(Number.isInteger(hour) && hour >= 0 && hour <= 23 ? { day_boundary_hour: hour } : {}),
+    };
+  } catch {
+    return {};
+  }
+}
+
 function DayStep() {
   const navigate = useNavigate();
   const { data: profile } = useProfile();
   const update = useUpdateProfile();
-  const [draft, setDraft] = useState<Partial<DayValues>>({});
+  const [draft, setDraft] = useState<Partial<DayValues>>(signupChoice);
 
   if (!profile) return <Loading />;
   const values: DayValues = {

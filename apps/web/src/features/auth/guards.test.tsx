@@ -9,7 +9,14 @@ function renderAt(path: string) {
   const router = createMemoryRouter(
     [
       { path: '/sign-in', element: <p>sign-in page</p> },
-      { element: <RequireAuth />, children: [{ path: '/', element: <p>private page</p> }] },
+      { path: '/welcome', element: <p>landing page</p> },
+      {
+        element: <RequireAuth />,
+        children: [
+          { path: '/', element: <p>private page</p> },
+          { path: '/deadlines', element: <p>deadlines page</p> },
+        ],
+      },
     ],
     { initialEntries: [path] },
   );
@@ -24,9 +31,15 @@ describe('RequireAuth', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument();
   });
 
-  it('sends signed-out users to sign-in', () => {
+  it('shows signed-out visitors at the front door the landing page', () => {
     useAuth.setState({ session: null, ready: true });
     renderAt('/');
+    expect(screen.getByText('landing page')).toBeInTheDocument();
+  });
+
+  it('sends a signed-out deep link straight to sign-in', () => {
+    useAuth.setState({ session: null, ready: true });
+    renderAt('/deadlines');
     expect(screen.getByText('sign-in page')).toBeInTheDocument();
   });
 

@@ -111,7 +111,7 @@ export function CalendarPage() {
               key={dir}
               onClick={() => go({ date: shift(view, anchor, dir) })}
               aria-label={dir < 0 ? 'Previous' : 'Next'}
-              className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-text"
+              className="rounded-full p-2 text-faint hover:bg-surface-2 hover:text-text"
             >
               <svg viewBox="0 0 16 16" className="size-4" aria-hidden>
                 <path
@@ -126,13 +126,13 @@ export function CalendarPage() {
             </button>
           ))}
         </div>
-        <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight md:text-xl">
+        <h1 className="min-w-0 flex-1 truncate font-display text-[22px] md:text-[26px]">
           {title(view, days, anchor)}
         </h1>
         <div
           role="radiogroup"
           aria-label="View"
-          className="flex rounded-lg border border-border p-0.5 text-xs"
+          className="flex rounded-full bg-surface-2 p-1 text-sm"
         >
           {(['day', 'week', 'month'] as const).map((v) => (
             <button
@@ -140,7 +140,7 @@ export function CalendarPage() {
               role="radio"
               aria-checked={view === v}
               onClick={() => go({ view: v })}
-              className={`rounded-md px-2.5 py-1 capitalize ${view === v ? 'bg-surface-2 font-medium text-text' : 'text-muted'}`}
+              className={`rounded-md px-2.5 py-1 capitalize ${view === v ? 'bg-text font-medium text-bg' : 'text-muted'}`}
             >
               {v}
             </button>
@@ -149,7 +149,7 @@ export function CalendarPage() {
       </div>
 
       {error && <Notice tone="error">Could not load the calendar.</Notice>}
-      <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-surface/30">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-[var(--radius-card)] bg-surface/30">
         {isLoading && !items ? (
           <div className="p-4">
             <Loading />

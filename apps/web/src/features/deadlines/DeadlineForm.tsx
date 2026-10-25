@@ -14,7 +14,7 @@ interface Props {
   onSaved?(id: string): void;
 }
 
-const input = 'w-full rounded-lg border border-border bg-surface-2 px-3 py-2';
+const input = 'w-full rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2';
 
 export function DeadlineForm({ open, onOpenChange, deadline, today, onSaved }: Props) {
   return (

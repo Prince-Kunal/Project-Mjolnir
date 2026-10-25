@@ -17,7 +17,7 @@ function timezones(current: string): string[] {
 }
 
 const fieldClass =
-  'mt-1 w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text focus:border-accent focus:outline-none';
+  'mt-1 w-full rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 text-sm text-text focus:outline-2 focus:outline-bone/50';
 
 export function DaySettings({
   values,
@@ -92,8 +92,10 @@ export function DaySettings({
           ).map(([value, label, hint]) => (
             <label
               key={value}
-              className={`flex cursor-pointer gap-3 rounded-lg border p-3 ${
-                values.google_item_type === value ? 'border-accent bg-accent/10' : 'border-border'
+              className={`flex cursor-pointer gap-3 rounded-[var(--radius-inner)] p-3.5 transition ${
+                values.google_item_type === value
+                  ? 'bg-active outline-2 outline-text'
+                  : 'bg-surface-2'
               }`}
             >
               <input

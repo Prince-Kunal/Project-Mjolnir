@@ -1,6 +1,7 @@
 import { type ColorRule, normalizePrimaries } from '@mjolnir/domain';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { CardLayout } from '../../components/cardLayout.ts';
 import { Button, Card, Loading, Notice } from '../../components/ui.tsx';
 import { signOut, useAuth } from '../../lib/auth.ts';
 import { connectErrorMessage, type ConnectResult } from '../../lib/googleConnect.ts';
@@ -28,51 +29,70 @@ export function MorePage() {
   const result = (location.state as { google?: ConnectResult } | null)?.google;
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-5">
-      <h1 className="text-2xl font-semibold tracking-tight">More</h1>
-      <nav aria-label="Planning" className="grid grid-cols-2 gap-3">
-        <Link
-          to="/plan"
-          className="rounded-xl border border-border bg-surface p-4 hover:border-muted"
-        >
-          <p className="font-semibold">Plan tomorrow</p>
-          <p className="mt-1 text-xs text-muted">Blocks, deadlines and backlog for tomorrow</p>
-        </Link>
-        <Link
-          to="/review"
-          className="rounded-xl border border-border bg-surface p-4 hover:border-muted"
-        >
-          <p className="font-semibold">Sunday review</p>
-          <p className="mt-1 text-xs text-muted">The week summarised, with a reflection</p>
-        </Link>
-      </nav>
-      <h2 className="mt-2 text-lg font-semibold">Settings</h2>
+    <div className="flex flex-col gap-10">
+      <header>
+        <h1 className="text-[28px] leading-none md:text-[32px]">More</h1>
+        <nav aria-label="Planning" className="mt-6 grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              ['/plan', 'Plan tomorrow', 'Blocks, deadlines and the backlog for tomorrow'],
+              ['/review', 'Sunday review', 'The week summarised, with a reflection'],
+              ['/analytics', 'Analytics', 'Trends, areas, misses and streaks over time'],
+            ] as const
+          ).map(([to, title, text]) => (
+            <Link
+              key={to}
+              to={to}
+              className="group rounded-[var(--radius-card)] bg-surface p-5 transition hover:bg-surface-2"
+            >
+              <p className="flex items-center justify-between font-display text-[19px]">
+                {title}
+                <span
+                  className="text-faint transition group-hover:translate-x-0.5 group-hover:text-text"
+                  aria-hidden
+                >
+                  →
+                </span>
+              </p>
+              <p className="mt-1 text-[15px] text-muted">{text}</p>
+            </Link>
+          ))}
+        </nav>
+      </header>
+      <h2 className="text-[22px]">Settings</h2>
       {result?.status === 'ok' && <Notice>Google Calendar connected.</Notice>}
-      <GoogleConnectCard
-        returnTo={{ ok: '/more', error: '/more' }}
-        error={result?.status === 'error' ? connectErrorMessage(result.reason) : null}
-      />
-      <ModeSources />
-      <Card
-        title="Habits"
-        description="Daily checks worth 1 to 3 points. They count toward the day's score."
-      >
-        <HabitsEditor />
-      </Card>
-      <Card title="Areas" description="Top-level categories, such as Rich, Muscular, Intelligent.">
-        <AreasEditor />
-      </Card>
-      <Card
-        title="Tags"
-        description="Made by #tags in titles or the item dropdown. A tag's area applies to its items."
-      >
-        <TagsEditor />
-      </Card>
-      <ColoursSettings />
-      <DaySettingsCard />
-      <NotificationsCard />
-      <AccountCard />
-      <DataCard />
+      <CardLayout.Provider value="settings">
+        <div className="flex flex-col gap-12">
+          <GoogleConnectCard
+            returnTo={{ ok: '/more', error: '/more' }}
+            error={result?.status === 'error' ? connectErrorMessage(result.reason) : null}
+          />
+          <ModeSources />
+          <ColoursSettings />
+          <DaySettingsCard />
+          <NotificationsCard />
+          <Card
+            title="Habits"
+            description="Daily checks worth 1 to 3 points. They count toward the day's score."
+          >
+            <HabitsEditor />
+          </Card>
+          <Card
+            title="Areas"
+            description="Top-level categories, such as Rich, Muscular, Intelligent."
+          >
+            <AreasEditor />
+          </Card>
+          <Card
+            title="Tags"
+            description="Made by #tags in titles or the item dropdown. A tag's area applies to its items."
+          >
+            <TagsEditor />
+          </Card>
+          <AccountCard />
+          <DataCard />
+        </div>
+      </CardLayout.Provider>
     </div>
   );
 }
@@ -157,8 +177,8 @@ function DaySettingsCard() {
         )}
         {toggle(
           'writeback_checkmark',
-          'Show ✓ in Google Calendar',
-          'Ticked tasks get a “✓ ” title prefix, visible in widgets and Apple Calendar.',
+          'Show a check mark in Google Calendar',
+          'Ticked blocks get a check mark in front of their title, visible in widgets and Apple Calendar.',
         )}
         {update.error && <Notice tone="error">Could not save settings.</Notice>}
       </div>

@@ -72,7 +72,7 @@ export function NotificationsCard() {
           aria-label={`${label} time`}
           value={String(profile[time as keyof typeof profile] ?? '').slice(0, 5)}
           onChange={(e) => e.target.value && update.mutate({ [time]: e.target.value })}
-          className="rounded-lg border border-border bg-surface-2 px-2 py-1 text-xs"
+          className="rounded-[var(--radius-inner)] bg-surface-2 px-2 py-1 text-xs"
         />
       )}
     </div>

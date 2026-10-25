@@ -97,7 +97,7 @@ test('0-point events are hidden and the score matches a hand calculation', async
   const page = await context.newPage();
   await page.goto('/');
 
-  await expect(page.getByText('PR review')).toBeVisible();
+  await expect(page.getByText('PR review', { exact: true })).toBeVisible();
   await expect(page.getByText('Dinner')).toHaveCount(0);
   // 3 done of 3 + 2 + 1 = 6 planned → 50.0%, Fair.
   await expect(page.getByRole('img', { name: 'Success rate 50%, Fair' })).toBeVisible();

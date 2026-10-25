@@ -68,7 +68,7 @@ export function TaskListsCard() {
             {!lists.data?.length ? (
               <p className="text-muted">No task lists yet. Refresh to read them from Google.</p>
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-rule">
                 {lists.data.map((l) => (
                   <li key={l.id} className="flex items-center gap-3 py-2">
                     <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
@@ -84,7 +84,7 @@ export function TaskListsCard() {
                       value={l.points}
                       aria-label={`Points for ${l.title}`}
                       onChange={(e) => save.mutate({ id: l.id, points: Number(e.target.value) })}
-                      className="rounded-lg border border-border bg-surface-2 px-2 py-1 text-xs"
+                      className="rounded-[var(--radius-inner)] bg-surface-2 px-2 py-1 text-xs"
                     >
                       {[0, 1, 2, 3].map((p) => (
                         <option key={p} value={p}>

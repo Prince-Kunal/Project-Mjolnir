@@ -17,7 +17,7 @@ export function CalendarPicker() {
       ) : !calendars?.length ? (
         <p className="text-sm text-muted">No calendars yet. Connect Google Calendar first.</p>
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-rule">
           {calendars.map((c) => (
             <li key={c.id}>
               <label className="flex cursor-pointer items-center gap-3 py-2.5">

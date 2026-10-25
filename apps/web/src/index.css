@@ -1,39 +1,263 @@
 @import 'tailwindcss';
+@import 'lenis/dist/lenis.css';
 
-/* Dark theme by default (section 6). Band and status colours from section 11. */
+/*
+ * Forged iron. True-black-flat (the taste sheet in .taste-skill/app): one warm near-black ground,
+ * elevation by lightness alone (no borders or shadows on cards), bone ink, and colour kept for
+ * data: the score bands, the Google colours of each block, and lightning on the one data line.
+ * Type: Young Serif for titles and figures, Source Serif 4 for everything read.
+ */
 @theme {
-  --color-bg: #0b0d12;
-  --color-surface: #141821;
-  --color-surface-2: #1c2130;
-  --color-border: #262c3b;
-  --color-text: #e6e9f2;
-  --color-muted: #8b93a7;
-  --color-accent: #7c9cff;
+  --color-bg: #0e0d0c;
+  --color-surface: #181716;
+  --color-surface-2: #24221f;
+  --color-active: #2e2b28;
+  --color-border: #3a3632;
+  --color-rule: #23211e;
+  --color-text: #eeece9;
+  --color-muted: #b4afa7;
+  --color-faint: #96918a;
+  --color-bone: #e4e1dc;
 
-  --color-band-excellent: #3fb871;
-  --color-band-good: #2bb3a7;
-  --color-band-fair: #e0a63a;
-  --color-band-not-good: #e5534b;
+  /* The inverted pill: the one primary control per screen. Never the accent. */
+  --color-primary: #eeece9;
+  --color-on-primary: #0e0d0c;
+
+  /* Lightning: the one data hue (today's line, the current week, the live arc). */
+  --color-accent: #9ccbff;
+
+  /* Score bands (section 11): Excellent, Good, Fair, Not good. */
+  --color-band-excellent: #4cbf7c;
+  --color-band-good: #3bb7aa;
+  --color-band-fair: #e3a84a;
+  --color-band-not-good: #ec6a58;
+
+  --font-sans: 'Source Serif 4', ui-serif, Georgia, serif;
+  --font-display: 'Young Serif', 'Source Serif 4', ui-serif, Georgia, serif;
+
+  /* A serif reads small: the scale starts at 13px for meta and 15px for secondary text. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.45;
+  --text-base: 1rem;
+  --text-lg: 1.1875rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  --radius-card: 18px;
+  --radius-inner: 10px;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-strike: cubic-bezier(0.6, -0.28, 0.74, 0.05);
 }
 
-html,
-body,
-#root {
-  height: 100%;
+html {
+  background-color: var(--color-bg);
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
+  min-height: 100svh;
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+::selection {
+  background: var(--color-bone);
+  color: var(--color-bg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-bone);
+  outline-offset: 2px;
+}
+
+.num,
+.tabular-nums {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Every move keeps its content and drops its travel under reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Easter eggs and signature moves ------------------------------------------------------- */
+
+/* The hammer is thrown and comes back to the hand (it always returns). */
+@keyframes mj-throw {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  45% {
+    transform: translate(min(60vw, 520px), -14px) rotate(900deg);
+  }
+  55% {
+    transform: translate(min(60vw, 520px), -14px) rotate(1080deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(1800deg);
+  }
+}
+.mj-throw {
+  animation: mj-throw 1.6s var(--ease-out-quint);
+}
+
+/* A strike: the hammer lifts, then falls on the anvil. */
+@keyframes mj-strike {
+  0% {
+    transform: rotate(0deg);
+  }
+  35% {
+    transform: rotate(-38deg);
+  }
+  60% {
+    transform: rotate(12deg);
+  }
+  75% {
+    transform: rotate(-4deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+.mj-strike {
+  transform-origin: 50% 90%;
+  animation: mj-strike 0.7s var(--ease-out-quint);
+}
+
+/* Lightning: a bolt drawn on, then a flash that fades. */
+@keyframes mj-bolt {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+  40% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+@keyframes mj-flash {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.55;
+  }
+  16% {
+    opacity: 0.1;
+  }
+  24% {
+    opacity: 0.4;
+  }
+}
+.mj-bolt path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: mj-bolt 1.1s ease-out forwards;
+}
+.mj-flash {
+  animation: mj-flash 1.1s ease-out forwards;
+}
+
+/* Loki, as a fly, crosses the screen. */
+@keyframes mj-fly {
+  0% {
+    transform: translate(-10vw, 60vh) rotate(10deg);
+  }
+  20% {
+    transform: translate(20vw, 40vh) rotate(-20deg);
+  }
+  40% {
+    transform: translate(45vw, 55vh) rotate(25deg);
+  }
+  60% {
+    transform: translate(60vw, 30vh) rotate(-15deg);
+  }
+  80% {
+    transform: translate(85vw, 45vh) rotate(20deg);
+  }
+  100% {
+    transform: translate(110vw, 20vh) rotate(0deg);
+  }
+}
+.mj-fly {
+  animation: mj-fly 4.2s linear forwards;
+}
+@keyframes mj-wings {
+  50% {
+    transform: scaleY(0.4);
+  }
+}
+.mj-fly .wing {
+  transform-origin: center;
+  animation: mj-wings 0.06s linear infinite;
+}
+
+/* Entrance for app rows that arrive (feedback, not performance). */
+@keyframes mj-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.mj-rise {
+  animation: mj-rise 0.32s var(--ease-out-quint) both;
+}
+
+@keyframes mj-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes mj-sheet {
+  from {
+    transform: translateY(32px);
+    opacity: 0;
+  }
+}
+/* Tailwind's translate utilities use the separate `translate` property, so this composes with them. */
+@keyframes mj-pop {
+  from {
+    transform: translateY(12px) scale(0.98);
+    opacity: 0;
+  }
 }

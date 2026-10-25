@@ -36,8 +36,12 @@ export function DeadlineDetailPage() {
   if (!d)
     return (
       <div className="mx-auto max-w-2xl">
+        <h1 className="mb-4 text-[28px] leading-tight md:text-[32px]">Deadline not found</h1>
         <Notice tone="error">This deadline no longer exists.</Notice>
-        <Link to="/deadlines" className="mt-4 inline-block text-sm text-accent">
+        <Link
+          to="/deadlines"
+          className="mt-4 inline-block text-sm text-text underline decoration-active underline-offset-4"
+        >
           Back to deadlines
         </Link>
       </div>
@@ -57,97 +61,106 @@ export function DeadlineDetailPage() {
   const firstTag = d.tags[0]?.name;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <Link to="/deadlines" className="text-sm text-muted hover:text-text">
         ← Deadlines
       </Link>
-      <header className="mt-3 flex flex-wrap items-start justify-between gap-3">
+      <div className="mt-3 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">{d.title}</h1>
-          <p className="mt-1 text-sm text-muted">{dueText(d)}</p>
+          <header className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-[28px] leading-tight md:text-[32px]">{d.title}</h1>
+              <p className="mt-1 text-sm text-muted">{dueText(d)}</p>
+            </div>
+            <StatusSelect deadline={d} />
+          </header>
+
+          <div className="mt-4">
+            <ProgressSlider deadline={d} />
+          </div>
+          <div className="mt-3">
+            <Warnings warnings={d.warnings} />
+          </div>
+
+          <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat
+              label="Sessions done"
+              value={`${s.sessions_done}${d.target_sessions ? ` / ${d.target_sessions}` : ''}`}
+            />
+            <Stat label="Upcoming" value={String(s.sessions_upcoming)} />
+            <Stat label="Missed" value={String(s.sessions_missed)} />
+            <Stat
+              label="Hours done"
+              value={`${formatMinutes(s.minutes_done)}${d.target_minutes ? ` / ${formatMinutes(d.target_minutes)}` : ''}`}
+            />
+            <Stat label="Hours planned" value={formatMinutes(s.minutes_planned)} />
+            <Stat
+              label="Last session"
+              value={
+                s.last_session
+                  ? `${formatWeekday(s.last_session)} ${formatDayMonth(s.last_session)}`
+                  : '—'
+              }
+            />
+            <Stat
+              label="Next session"
+              value={s.next_session ? sessionWhen(s.next_session, tz) : '—'}
+            />
+            <Stat
+              label="Window"
+              value={`${formatDayMonth(s.window_from)} – ${formatDayMonth(s.window_to)}`}
+            />
+          </dl>
+
+          <div className="mt-5 flex flex-wrap items-center gap-1.5 text-sm">
+            <span className="text-muted">Tags</span>
+            {d.tags.length ? (
+              d.tags.map((t) => (
+                <span key={t.id} className="rounded bg-surface-2 px-1.5 py-0.5 text-xs">
+                  #{t.name}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs text-muted">none: only directly linked items count</span>
+            )}
+          </div>
+
+          <NotesField key={d.id} id={d.id} initial={d.notes} />
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button onClick={() => setScheduling(true)} disabled={!day}>
+              Schedule a session
+            </Button>
+            <Button variant="secondary" onClick={() => setEditing(true)} disabled={!day}>
+              Edit
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-band-not-good"
+              disabled={remove.isPending}
+              onClick={() => {
+                if (!window.confirm(`Delete “${d.title}”? Its sessions stay in your calendar.`))
+                  return;
+                remove.mutate(d.id, { onSuccess: () => navigate('/deadlines') });
+              }}
+            >
+              Delete
+            </Button>
+          </div>
         </div>
-        <StatusSelect deadline={d} />
-      </header>
-
-      <div className="mt-4">
-        <ProgressSlider deadline={d} />
+        <div className="flex min-w-0 flex-col gap-4">
+          <SessionList title="Upcoming" items={upcoming} timeZone={tz} onOpen={setOpenId} />
+          <SessionList title="Past" items={past} timeZone={tz} onOpen={setOpenId} />
+          {sessions.length === 0 && (
+            <p className="rounded-[var(--radius-card)] bg-surface p-6 text-sm text-muted">
+              No sessions yet.{' '}
+              {firstTag
+                ? `Title a block with #${firstTag} in Google Calendar, or schedule one here.`
+                : 'Link events or tasks to it from their sheet.'}
+            </p>
+          )}
+        </div>
       </div>
-      <div className="mt-3">
-        <Warnings warnings={d.warnings} />
-      </div>
-
-      <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat
-          label="Sessions done"
-          value={`${s.sessions_done}${d.target_sessions ? ` / ${d.target_sessions}` : ''}`}
-        />
-        <Stat label="Upcoming" value={String(s.sessions_upcoming)} />
-        <Stat label="Missed" value={String(s.sessions_missed)} />
-        <Stat
-          label="Hours done"
-          value={`${formatMinutes(s.minutes_done)}${d.target_minutes ? ` / ${formatMinutes(d.target_minutes)}` : ''}`}
-        />
-        <Stat label="Hours planned" value={formatMinutes(s.minutes_planned)} />
-        <Stat
-          label="Last session"
-          value={
-            s.last_session
-              ? `${formatWeekday(s.last_session)} ${formatDayMonth(s.last_session)}`
-              : '—'
-          }
-        />
-        <Stat label="Next session" value={s.next_session ? sessionWhen(s.next_session, tz) : '—'} />
-        <Stat
-          label="Window"
-          value={`${formatDayMonth(s.window_from)} – ${formatDayMonth(s.window_to)}`}
-        />
-      </dl>
-
-      <div className="mt-5 flex flex-wrap items-center gap-1.5 text-sm">
-        <span className="text-muted">Tags</span>
-        {d.tags.length ? (
-          d.tags.map((t) => (
-            <span key={t.id} className="rounded bg-surface-2 px-1.5 py-0.5 text-xs">
-              #{t.name}
-            </span>
-          ))
-        ) : (
-          <span className="text-xs text-muted">none: only directly linked items count</span>
-        )}
-      </div>
-
-      <NotesField key={d.id} id={d.id} initial={d.notes} />
-
-      <div className="mt-5 flex flex-wrap gap-2">
-        <Button onClick={() => setScheduling(true)} disabled={!day}>
-          Schedule a session
-        </Button>
-        <Button variant="secondary" onClick={() => setEditing(true)} disabled={!day}>
-          Edit
-        </Button>
-        <Button
-          variant="ghost"
-          className="text-band-not-good"
-          disabled={remove.isPending}
-          onClick={() => {
-            if (!window.confirm(`Delete “${d.title}”? Its sessions stay in your calendar.`)) return;
-            remove.mutate(d.id, { onSuccess: () => navigate('/deadlines') });
-          }}
-        >
-          Delete
-        </Button>
-      </div>
-
-      <SessionList title="Upcoming" items={upcoming} timeZone={tz} onOpen={setOpenId} />
-      <SessionList title="Past" items={past} timeZone={tz} onOpen={setOpenId} />
-      {sessions.length === 0 && (
-        <p className="mt-8 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
-          No sessions yet.{' '}
-          {firstTag
-            ? `Title a block with #${firstTag} in Google Calendar, or schedule one here.`
-            : 'Link events or tasks to it from their sheet.'}
-        </p>
-      )}
 
       {day && (
         <>
@@ -174,7 +187,7 @@ export function DeadlineDetailPage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-surface px-3 py-2">
+    <div className="rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2">
       <dt className="text-xs text-muted">{label}</dt>
       <dd className="mt-0.5 truncate text-sm font-medium tabular-nums">{value}</dd>
     </div>
@@ -194,9 +207,9 @@ function SessionList({
 }) {
   if (!items.length) return null;
   return (
-    <section className="mt-6">
-      <h2 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h2>
-      <ul className="mt-1 divide-y divide-border">
+    <section className="rounded-[var(--radius-card)] bg-surface px-5 pt-4 pb-1">
+      <h2 className="text-[17px] text-text">{title}</h2>
+      <ul className="mt-1 divide-y divide-rule">
         {items.map((i) => (
           <li key={i.id}>
             <button
@@ -238,7 +251,7 @@ function NotesField({ id, initial }: { id: string; initial: string }) {
         rows={3}
         onChange={(e) => setNotes(e.target.value)}
         onBlur={() => notes !== initial && update.mutate({ id, notes })}
-        className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2"
+        className="w-full rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2"
       />
     </label>
   );
