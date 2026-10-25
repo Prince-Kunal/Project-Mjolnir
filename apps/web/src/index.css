@@ -75,13 +75,16 @@ body {
   min-height: 100svh;
 }
 
-h1,
-h2,
-h3 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  text-wrap: balance;
+/* In the base layer so a heading's own utilities (truncate, a sans face) still win. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
 }
 
 ::selection {

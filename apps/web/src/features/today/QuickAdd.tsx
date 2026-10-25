@@ -11,6 +11,8 @@ interface Props {
   /** Day for a task when the text names none: the day being viewed. */
   defaultDate: string;
   autoFocus?: boolean;
+  /** In a narrow dialog the input takes its own row, with points and Add below. */
+  stacked?: boolean;
   /** Text to start from, such as a deadline's tag. */
   initialText?: string;
   onDone?(): void;
@@ -20,7 +22,13 @@ interface Props {
  * Quick add (section 5): `PR review tomorrow 6pm 2h #lfx !2`. With a time it becomes a Google
  * Calendar event coloured for its points; otherwise a task for the named day.
  */
-export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: Props) {
+export function QuickAdd({
+  defaultDate,
+  autoFocus,
+  stacked = false,
+  initialText = '',
+  onDone,
+}: Props) {
   const { data: profile } = useProfile();
   const [text, setText] = useState(initialText);
   const [points, setPoints] = useState<1 | 2 | 3>(1);
@@ -93,7 +101,7 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+      <div className={`flex flex-wrap items-center gap-2 ${stacked ? '' : 'sm:flex-nowrap'}`}>
         <input
           value={text}
           onChange={(e) => {
@@ -104,7 +112,7 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
           autoFocus={autoFocus}
           placeholder="Add… e.g. Gym 7pm 1h #health !2"
           aria-label="Quick add"
-          className="h-11 min-w-0 flex-1 basis-full rounded-full bg-surface-2 sm:basis-auto px-5 text-[16px] placeholder:text-faint focus:outline-2 focus:outline-bone/50"
+          className={`h-11 min-w-0 flex-1 basis-full rounded-full bg-surface-2 ${stacked ? '' : 'sm:basis-auto'} px-5 text-[16px] placeholder:text-faint focus:outline-2 focus:outline-bone/50`}
         />
         <div
           role="radiogroup"
@@ -128,7 +136,7 @@ export function QuickAdd({ defaultDate, autoFocus, initialText = '', onDone }: P
         <button
           type="submit"
           disabled={!parsed?.title || pending}
-          className="ml-auto h-11 shrink-0 rounded-full bg-primary px-5 sm:ml-0 text-[15px] font-medium text-on-primary transition hover:bg-bone active:scale-[0.97] disabled:opacity-40"
+          className={`ml-auto h-11 shrink-0 rounded-full bg-primary px-5 ${stacked ? '' : 'sm:ml-0'} text-[15px] font-medium text-on-primary transition hover:bg-bone active:scale-[0.97] disabled:opacity-40`}
         >
           Add
         </button>

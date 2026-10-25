@@ -479,7 +479,7 @@ function Panel({
 }) {
   return (
     <section className="min-w-0 rounded-[var(--radius-card)] bg-surface p-4">
-      <h2 className="text-sm font-semibold">{title}</h2>
+      <h2 className="text-sm">{title}</h2>
       {note && <p className="text-xs text-muted">{note}</p>}
       {legend && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">{legend}</div>}
       <div className="mt-3">{children}</div>

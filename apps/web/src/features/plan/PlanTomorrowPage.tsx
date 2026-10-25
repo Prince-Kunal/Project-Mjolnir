@@ -167,6 +167,7 @@ export function PlanTomorrowPage() {
       >
         {scheduling && (
           <QuickAdd
+            stacked
             defaultDate={tomorrow}
             autoFocus
             initialText={`${scheduling.title}${firstTag ? ` #${firstTag}` : ''} tomorrow 6pm 1h`}

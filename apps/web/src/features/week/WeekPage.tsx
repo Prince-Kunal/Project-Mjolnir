@@ -59,7 +59,8 @@ function BandChip({ band, muted }: { band: DayRow['band']; muted?: boolean }) {
 /** Counted, rest pass, or broke (section 11, screen 4). Open days are not judged yet. */
 function streakStatus(d: DayRow, today: string): { label: string; tone: string } {
   if (!d.finalized) return { label: d.date === today ? 'Today' : '—', tone: 'text-muted' };
-  if (d.counts) return { label: `Counted · ${d.streak_after}`, tone: 'text-band-excellent' };
+  // Fine rows stay grey; colour is kept for the days that need a look.
+  if (d.counts) return { label: `Counted · ${d.streak_after}`, tone: 'text-muted' };
   if (d.rest_pass_used) return { label: 'Rest pass', tone: 'text-band-fair' };
   return { label: 'Broke', tone: 'text-band-not-good' };
 }

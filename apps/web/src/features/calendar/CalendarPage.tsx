@@ -126,13 +126,13 @@ export function CalendarPage() {
             </button>
           ))}
         </div>
-        <h1 className="min-w-0 flex-1 truncate font-display text-[22px] md:text-[26px]">
+        <h1 className="order-first min-w-0 basis-full truncate font-display text-[22px] sm:order-none sm:flex-1 sm:basis-auto md:text-[26px]">
           {title(view, days, anchor)}
         </h1>
         <div
           role="radiogroup"
           aria-label="View"
-          className="flex rounded-full bg-surface-2 p-1 text-sm"
+          className="ml-auto flex rounded-full bg-surface-2 p-1 text-sm"
         >
           {(['day', 'week', 'month'] as const).map((v) => (
             <button
@@ -140,7 +140,7 @@ export function CalendarPage() {
               role="radio"
               aria-checked={view === v}
               onClick={() => go({ view: v })}
-              className={`rounded-md px-2.5 py-1 capitalize ${view === v ? 'bg-text font-medium text-bg' : 'text-muted'}`}
+              className={`rounded-full px-3 py-1 capitalize ${view === v ? 'bg-text font-medium text-bg' : 'text-muted'}`}
             >
               {v}
             </button>

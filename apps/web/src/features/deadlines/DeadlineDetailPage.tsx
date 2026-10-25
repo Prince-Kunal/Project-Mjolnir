@@ -172,6 +172,7 @@ export function DeadlineDetailPage() {
             description={`Add a time to make a Google Calendar event${firstTag ? `; #${firstTag} links it` : ''}.`}
           >
             <QuickAdd
+              stacked
               defaultDate={day.today}
               autoFocus
               initialText={firstTag ? `${d.title} #${firstTag} ` : `${d.title} `}

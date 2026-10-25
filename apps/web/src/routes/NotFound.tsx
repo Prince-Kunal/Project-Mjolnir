@@ -11,8 +11,12 @@ export function NotFound() {
         type="button"
         onClick={() => setGone(false)}
         aria-label="Call the hammer back"
-        className="text-bone"
+        className="relative text-bone"
       >
+        {/* A faint outline marks where the hammer stood, so there is something to click. */}
+        <HammerMark
+          className={`absolute inset-0 size-16 text-faint transition-opacity duration-500 ${gone ? 'opacity-25' : 'opacity-0'}`}
+        />
         <HammerMark
           className={`size-16 transition duration-700 ease-[var(--ease-out-quint)] ${gone ? 'translate-x-[40vw] -rotate-[540deg] opacity-0' : ''}`}
         />
