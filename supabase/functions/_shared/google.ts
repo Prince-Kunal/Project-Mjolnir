@@ -10,6 +10,8 @@ export const CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
 
 export const SCOPE_EVENTS = 'https://www.googleapis.com/auth/calendar.events';
 export const SCOPE_CALENDAR_LIST = 'https://www.googleapis.com/auth/calendar.calendarlist.readonly';
+/** Google Tasks, asked for only when a user turns on Tasks mode (8.1). */
+export const SCOPE_TASKS = 'https://www.googleapis.com/auth/tasks';
 
 /** Minimum set for Events mode, checked against Google's method references (DECISIONS.md). */
 export const CONNECT_SCOPES = ['openid', 'email', SCOPE_EVENTS, SCOPE_CALENDAR_LIST];
@@ -59,13 +61,13 @@ export class GoogleError extends Error {
 
 export function buildConsentUrl(
   cfg: GoogleOAuthConfig,
-  opts: { state: string; codeChallenge: string; loginHint?: string },
+  opts: { state: string; codeChallenge: string; loginHint?: string; tasks?: boolean },
 ): string {
   const params = new URLSearchParams({
     client_id: cfg.clientId,
     redirect_uri: cfg.redirectUri,
     response_type: 'code',
-    scope: CONNECT_SCOPES.join(' '),
+    scope: [...CONNECT_SCOPES, ...(opts.tasks ? [SCOPE_TASKS] : [])].join(' '),
     access_type: 'offline',
     prompt: 'consent',
     include_granted_scopes: 'true',

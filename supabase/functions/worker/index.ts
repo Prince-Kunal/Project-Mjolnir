@@ -12,6 +12,10 @@ import {
   type LinksJob,
   runCheckmark,
   runLinks,
+  runTaskStatus,
+  type TaskStatusJob,
+  type TaskWriteContext,
+  type TaskWriteDeps,
   type WriteContext,
   type WriteDeps,
 } from '../_shared/writes.ts';
@@ -27,6 +31,8 @@ import { accessTokenFor } from '../_shared/google.ts';
 import { type PushDeps, type PushJob, runPush } from '../_shared/push.ts';
 import { createSender } from '../_shared/webpush.ts';
 import { type Lease, type SyncStore, syncSource } from '../_shared/sync/run.ts';
+import { syncTaskList, type TaskLease, type TaskStore } from '../_shared/sync/taskRun.ts';
+import type { TaskSnapshot } from '../_shared/sync/tasks.ts';
 import type { ItemSnapshot } from '../_shared/sync/types.ts';
 import { BadMessage, createWorker, type QueueMessage } from './handler.ts';
 
@@ -109,6 +115,44 @@ const store: SyncStore = {
     );
   },
 };
+
+const taskStore: TaskStore = {
+  async lease(listId) {
+    const data = check('svc_task_lease', await admin.rpc('svc_task_lease', { p_list_id: listId }));
+    return (data as unknown as TaskLease) ?? null;
+  },
+  async items(listId, taskIds) {
+    const data = check(
+      'svc_task_items',
+      await admin.rpc('svc_task_items', { p_list_id: listId, p_task_ids: taskIds }),
+    );
+    return (data ?? []) as unknown as TaskSnapshot[];
+  },
+  async apply(listId, ops, seen) {
+    const data = check(
+      'svc_apply_task_ops',
+      await admin.rpc('svc_apply_task_ops', {
+        p_list_id: listId,
+        p_ops: ops as unknown as never,
+        p_seen: seen,
+      }),
+    );
+    return data as unknown as { applied: number; skipped: number };
+  },
+  checkpoint: store.checkpoint,
+  async finish(listId) {
+    check('svc_task_finish', await admin.rpc('svc_task_finish', { p_list_id: listId }));
+  },
+  fail: store.fail,
+};
+
+async function sourceKind(sourceId: string): Promise<string | null> {
+  const data = check(
+    'svc_source_kind',
+    await admin.rpc('svc_source_kind', { p_source_id: sourceId }),
+  );
+  return (data as string | null) ?? null;
+}
 
 function accessToken(userId: string) {
   return accessTokenFor({
@@ -220,6 +264,20 @@ const push: PushDeps = {
   },
 };
 
+const taskWrites: TaskWriteDeps = {
+  accessToken,
+  async context(itemId) {
+    const data = check(
+      'svc_task_write_context',
+      await admin.rpc('svc_task_write_context', { p_item_id: itemId }),
+    );
+    return (data as unknown as TaskWriteContext) ?? null;
+  },
+  async done(itemId, etag) {
+    check('svc_write_done', await admin.rpc('svc_write_done', { p_item_id: itemId, p_etag: etag }));
+  },
+};
+
 const handler = createWorker(
   {
     secret: requireEnv('WORKER_SECRET'),
@@ -250,7 +308,13 @@ const handler = createWorker(
     handlers: {
       sync_jobs: (m, deadline) => {
         if (typeof m.source_id !== 'string') throw new BadMessage('no source_id');
-        return syncSource(m.source_id, { store, accessToken, deadline });
+        const id = m.source_id;
+        // A source is a calendar or, in Tasks mode, a Google task list (8.9).
+        return sourceKind(id).then((kind) =>
+          kind === 'task_list'
+            ? syncTaskList(id, { store: taskStore, accessToken, deadline })
+            : syncSource(id, { store, accessToken, deadline }),
+        );
       },
       google_writes: (m) => {
         if (m.kind === 'checkmark' && typeof m.item_id === 'string') {
@@ -258,6 +322,9 @@ const handler = createWorker(
         }
         if (m.kind === 'links' && typeof m.item_id === 'string') {
           return runLinks(m as unknown as LinksJob, writes);
+        }
+        if (m.kind === 'task_status' && typeof m.item_id === 'string') {
+          return runTaskStatus(m as unknown as TaskStatusJob, taskWrites);
         }
         throw new BadMessage(`unknown write ${String(m.kind)}`);
       },

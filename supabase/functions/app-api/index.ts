@@ -10,6 +10,8 @@ import {
   type PreparedReschedule,
   type PreparedSchedule,
   RpcError,
+  type TaskAppContext,
+  type TaskEditContext,
 } from './handler.ts';
 
 const admin = adminClient();
@@ -107,6 +109,41 @@ Deno.serve(
           );
         },
       }),
+    tasks: {
+      async appContext(userId) {
+        const data = check(
+          'svc_task_app_context',
+          await admin.rpc('svc_task_app_context', { p_user_id: userId }),
+        );
+        return data as unknown as TaskAppContext;
+      },
+      async editContext(userId, itemId) {
+        const data = check(
+          'svc_task_edit_context',
+          await admin.rpc('svc_task_edit_context', { p_user_id: userId, p_item_id: itemId }),
+        );
+        return (data as unknown as TaskEditContext) ?? null;
+      },
+      async applyOps(listId, ops) {
+        const data = check(
+          'svc_apply_task_ops',
+          await admin.rpc('svc_apply_task_ops', {
+            p_list_id: listId,
+            p_ops: ops as unknown as never,
+          }),
+        );
+        return data as unknown as { applied: number; skipped: number };
+      },
+      async upsertLists(userId, lists) {
+        check(
+          'svc_upsert_task_lists',
+          await admin.rpc('svc_upsert_task_lists', {
+            p_user_id: userId,
+            p_lists: lists as unknown as never,
+          }),
+        );
+      },
+    },
     account: {
       async channels(userId) {
         const data = check(

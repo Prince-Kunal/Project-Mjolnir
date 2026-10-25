@@ -31,6 +31,13 @@ Deno.serve(async (req) => {
         if (error?.code === '23505') throw new AccountInUseError();
         if (error) throw new Error(`svc_save_google_account: ${error.code}`);
       },
+      async upsertTaskLists(userId, lists) {
+        const { error } = await admin.rpc('svc_upsert_task_lists', {
+          p_user_id: userId,
+          p_lists: lists as unknown as never,
+        });
+        if (error) throw new Error(`svc_upsert_task_lists: ${error.message}`);
+      },
       async upsertCalendars(userId, calendars) {
         const { error } = await admin.rpc('svc_upsert_calendars', {
           p_user_id: userId,

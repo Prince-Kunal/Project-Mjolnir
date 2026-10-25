@@ -41,6 +41,8 @@ export interface PlanContext {
   rules: ColorRule[];
   now: Date;
   window: { from: Date; to: Date };
+  /** Logical date Events mode (re)started: earlier events make no new items (3.13). */
+  createFrom?: string | null;
 }
 
 export interface ItemFields {

@@ -15,6 +15,8 @@ export interface Lease {
   window_to: string;
   sync_token: string | null;
   page_token: string | null;
+  /** Set after a switch back from Tasks mode. */
+  create_from?: string | null;
   attempts: number;
   profile: { timezone: string; day_boundary_hour: number; include_all_day: boolean };
   color_rules: ColorRule[];
@@ -101,6 +103,7 @@ export async function syncSource(sourceId: string, deps: SyncDeps): Promise<Sync
     rules: lease.color_rules,
     now: now(),
     window: { from: new Date(lease.window_from), to: new Date(lease.window_to) },
+    createFrom: lease.create_from ?? null,
   });
 
   let pageToken = lease.page_token;

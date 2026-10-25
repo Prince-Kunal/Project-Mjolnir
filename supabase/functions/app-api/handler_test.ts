@@ -9,7 +9,10 @@ import {
   type EditContext,
   type PreparedReschedule,
   RpcError,
+  type TaskEditContext,
 } from './handler.ts';
+import { TASKS_API } from '../_shared/tasks.ts';
+import type { TaskOp } from '../_shared/sync/tasks.ts';
 import type { SyncOp } from '../_shared/sync/types.ts';
 
 const ITEM = '00000000-0000-4000-8000-000000000001';
@@ -29,10 +32,30 @@ interface Setup {
   noCalendar?: boolean;
   applyError?: RpcError;
   channels?: { id: string; resource_id: string }[];
+  noTaskList?: boolean;
+  task?: Partial<TaskEditContext> | null;
+  /** Answers task writes. */
+  taskWrite?: (req: { method: string; body: string }) => Response;
   refreshToken?: string | null;
   /** Answers channels.stop and token revocation. */
   googleAccount?: (url: string, body: string) => Response;
 }
+
+const baseTask: TaskEditContext = {
+  id: '00000000-0000-4000-8000-0000000000bb',
+  source: 'gtask',
+  google_task_id: 't1',
+  status: 'pending',
+  finalized: false,
+  logical_date: '2026-10-21',
+  start_at: '2026-10-20T22:30:00.000Z',
+  points: 3,
+  raw_title: 'Read paper #lfx',
+  google_etag: '"t1"',
+  google_active: true,
+  task_list_id: 'list-row',
+  google_tasklist_id: 'l1',
+};
 
 const baseItem: EditContext = {
   id: '00000000-0000-4000-8000-0000000000aa',
@@ -57,6 +80,21 @@ function setup(o: Setup = {}) {
   const log: string[] = [];
   const states: { userId: string; nonce: string; verifier: string }[] = [];
   const applied: SyncOp[] = [];
+  const taskOps: TaskOp[] = [];
+  const taskRoute = (req: { method: string; body: string }) => {
+    log.push(`google-tasks ${req.method} ${req.body}`);
+    return (
+      o.taskWrite ??
+      (() =>
+        Response.json({
+          id: 't1',
+          etag: '"t2"',
+          title: 'Read paper #lfx',
+          status: 'needsAction',
+          due: '2026-10-22T00:00:00.000Z',
+        }))
+    )(req);
+  };
   const account = (req: { url: URL; body: string }) => {
     log.push(`google ${req.url.pathname} ${req.body}`);
     return (o.googleAccount ?? (() => new Response(null, { status: 200 })))(
@@ -67,6 +105,14 @@ function setup(o: Setup = {}) {
   const fetchFn = fakeFetch({
     [`${CALENDAR_API}/channels/stop`]: account,
     [GOOGLE_REVOKE_URL]: account,
+    [`${TASKS_API}/lists/l1/tasks`]: taskRoute,
+    [`${TASKS_API}/users/@me/lists`]: () =>
+      Response.json({
+        items: [
+          { id: 'l1', title: 'My Tasks' },
+          { id: 'l2', title: 'Work' },
+        ],
+      }),
     [EVENTS]: (req) =>
       (o.google ?? ((b) => Response.json({ etag: '"e1"', ...b })))(JSON.parse(req.body)),
     [`${EVENTS}/ev1`]: (req) => {
@@ -160,6 +206,25 @@ function setup(o: Setup = {}) {
         return Promise.resolve();
       },
     },
+    tasks: {
+      appContext: () =>
+        Promise.resolve({
+          timezone: 'Asia/Kolkata',
+          day_boundary_hour: 4,
+          google_item_type: 'tasks',
+          list: o.noTaskList ? null : { id: 'list-row', google_tasklist_id: 'l1', points: 2 },
+        }),
+      editContext: () => Promise.resolve(o.task === null ? null : { ...baseTask, ...o.task }),
+      applyOps: (list, ops) => {
+        log.push(`apply-tasks ${list} ${ops.map((op) => op.op).join(',')}`);
+        taskOps.push(...ops);
+        return Promise.resolve({ applied: ops.length, skipped: 0 });
+      },
+      upsertLists: (_u, lists) => {
+        log.push(`task-lists ${lists.map((l) => l.title).join(',')}`);
+        return Promise.resolve();
+      },
+    },
     account: {
       channels: () => Promise.resolve(o.channels ?? []),
       refreshToken: () => Promise.resolve(o.refreshToken === undefined ? 'rt-1' : o.refreshToken),
@@ -169,7 +234,7 @@ function setup(o: Setup = {}) {
       },
     },
   };
-  return { api: createAppApi(deps), states, log, fetchFn, applied };
+  return { api: createAppApi(deps), states, log, fetchFn, applied, taskOps };
 }
 
 const url = (path: string) => `http://localhost/functions/v1/app-api${path}`;
@@ -629,4 +694,87 @@ Deno.test('an account that never connected Google is deleted without calling Goo
   const res = await api(del({ confirm: 'delete' }));
   assertEquals(res.status, 200);
   assertEquals(log, ['delete-user u1']);
+});
+
+// Google Tasks mode (3.13, 8.9) -------------------------------------------------------------------
+
+const send = (method: string, path: string, body?: unknown) =>
+  new Request(url(path), { method, body: body === undefined ? undefined : JSON.stringify(body) });
+
+Deno.test('POST /google/connect asks for Google Tasks only in Tasks mode', async () => {
+  const { api } = setup();
+  const scopes = async (body?: unknown) =>
+    new URL((await (await api(post('/google/connect', body))).json()).url).searchParams
+      .get('scope')!
+      .split(' ');
+  assertEquals((await scopes()).includes('https://www.googleapis.com/auth/tasks'), false);
+  assertEquals(
+    (await scopes({ tasks: true })).includes('https://www.googleapis.com/auth/tasks'),
+    true,
+  );
+});
+
+Deno.test('POST /google/task-lists stores the lists from Google', async () => {
+  const { api, log } = setup();
+  assertEquals((await api(post('/google/task-lists'))).status, 200);
+  assertEquals(log, ['task-lists My Tasks,Work']);
+});
+
+Deno.test(
+  'POST /tasks creates a dated Google task and its item with the chosen points',
+  async () => {
+    const { api, log, taskOps } = setup();
+    const res = await api(
+      post('/tasks', { title: 'Read paper #lfx', date: '2026-10-22', points: 3 }),
+    );
+    assertEquals(res.status, 201);
+    assertEquals(
+      log[0],
+      'google-tasks POST {"title":"Read paper #lfx","due":"2026-10-22T00:00:00.000Z"}',
+    );
+    const op = taskOps[0]!;
+    if (op.op !== 'create') throw new Error(op.op);
+    assertEquals(
+      [op.item.title, op.item.logical_date, op.item.points, op.tags],
+      ['Read paper', '2026-10-22', 3, ['lfx']],
+    );
+  },
+);
+
+Deno.test('POST /tasks needs an enabled list and a valid date', async () => {
+  assertEquals((await setup({ noTaskList: true }).api(post('/tasks', { title: 'x' }))).status, 409);
+  assertEquals((await setup().api(post('/tasks', { title: 'x', date: 'tomorrow' }))).status, 400);
+});
+
+Deno.test(
+  'PATCH /tasks/:id moves the due date in Google; after the day began that is M3',
+  async () => {
+    const { api, log, taskOps } = setup();
+    const res = await api(send('PATCH', `/tasks/${baseTask.id}`, { date: '2026-10-22' }));
+    assertEquals(res.status, 200);
+    assertEquals(log[0], 'google-tasks PATCH {"due":"2026-10-22T00:00:00.000Z"}');
+    // It is 10:00 on the 21st, after the task's day began: a miss plus a new item, as in Google.
+    const op = taskOps[0]!;
+    assertEquals(op.op === 'replace' && [op.old_patch.status, op.item.logical_date], [
+      'missed',
+      '2026-10-22',
+    ]);
+  },
+);
+
+Deno.test('DELETE /tasks/:id deletes the task in Google and drops the item (D1)', async () => {
+  const { api, log, taskOps } = setup({ taskWrite: () => new Response(null, { status: 204 }) });
+  assertEquals((await api(send('DELETE', `/tasks/${baseTask.id}`))).status, 200);
+  assertEquals(log[0], 'google-tasks DELETE ');
+  assertEquals(taskOps[0]!.op === 'update' && taskOps[0]!.patch.status, 'deleted');
+});
+
+Deno.test("a closed day's task cannot be edited, and events are not tasks", async () => {
+  const closed = setup({ task: { finalized: true } });
+  assertEquals(
+    (await closed.api(send('PATCH', `/tasks/${baseTask.id}`, { title: 'x' }))).status,
+    400,
+  );
+  const event = setup({ task: { source: 'calendar' } });
+  assertEquals((await event.api(send('DELETE', `/tasks/${baseTask.id}`))).status, 404);
 });

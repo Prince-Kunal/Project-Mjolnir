@@ -138,7 +138,8 @@ export function planEvent(e: GEvent, item: ItemSnapshot | null, ctx: PlanContext
     // Incremental syncs cannot be bounded by time; drop new events outside the window.
     const outside =
       Date.parse(fields.end_at) <= ctx.window.from.getTime() ||
-      Date.parse(fields.start_at) >= ctx.window.to.getTime();
+      Date.parse(fields.start_at) >= ctx.window.to.getTime() ||
+      (ctx.createFrom != null && fields.logical_date < ctx.createFrom);
     if (outside) return { ops: [], seen: [] };
     // A new item for an event the app linked before (moved between calendars, say) gets its
     // links back. Later edits never read them: the database owns links.

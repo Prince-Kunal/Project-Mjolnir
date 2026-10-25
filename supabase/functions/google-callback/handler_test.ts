@@ -4,7 +4,9 @@ import {
   GOOGLE_TOKEN_URL,
   SCOPE_CALENDAR_LIST,
   SCOPE_EVENTS,
+  SCOPE_TASKS,
 } from '../_shared/google.ts';
+import { TASKS_API } from '../_shared/tasks.ts';
 import { fakeFetch, idToken } from '../_shared/testing.ts';
 import {
   AccountInUseError,
@@ -19,6 +21,7 @@ function setup(opts: { scope?: string; tokenStatus?: number; accountInUse?: bool
   const states = new Map([['nonce-1', { user_id: 'u1', code_verifier: 'ver-1' }]]);
   const saved: SaveAccountArgs[] = [];
   const calendars: unknown[] = [];
+  const taskLists: unknown[] = [];
   const fetchFn = fakeFetch({
     [GOOGLE_TOKEN_URL]: () =>
       opts.tokenStatus
@@ -30,6 +33,8 @@ function setup(opts: { scope?: string; tokenStatus?: number; accountInUse?: bool
             scope: opts.scope ?? FULL_SCOPE,
             id_token: idToken({ sub: 'g-sub', email: 'a@gmail.com' }),
           }),
+    [`${TASKS_API}/users/@me/lists`]: () =>
+      Response.json({ items: [{ id: 'l1', title: 'My Tasks' }] }),
     [`${CALENDAR_API}/users/me/calendarList`]: () =>
       Response.json({
         items: [{ id: 'a@gmail.com', summary: 'A', primary: true, accessRole: 'owner' }],
@@ -54,9 +59,13 @@ function setup(opts: { scope?: string; tokenStatus?: number; accountInUse?: bool
       calendars.push(...c);
       return Promise.resolve();
     },
+    upsertTaskLists: (_u, l) => {
+      taskLists.push(...l);
+      return Promise.resolve();
+    },
     encrypt: (s) => Promise.resolve(`enc(${s})`),
   };
-  return { deps, saved, calendars, fetchFn, states };
+  return { deps, saved, calendars, taskLists, fetchFn, states };
 }
 
 const cb = (q: string) => new URL(`http://localhost/functions/v1/google-callback?${q}`);
@@ -150,4 +159,21 @@ Deno.test('a Google account already linked to another user is reported', async (
     'http://app.test/google/connected?status=error&reason=account_in_use',
   );
   assertEquals(calendars.length, 0);
+});
+
+Deno.test('with the Tasks scope granted, the task lists are stored too', async () => {
+  const { deps, taskLists } = setup({ scope: `${FULL_SCOPE} ${SCOPE_TASKS}` });
+  const res = await handleCallback(cb('code=c1&state=nonce-1'), deps);
+  assertEquals(res.headers.get('location'), 'http://app.test/google/connected?status=ok');
+  assertEquals(taskLists, [{ id: 'l1', title: 'My Tasks' }]);
+});
+
+Deno.test('without it, Google Tasks is not touched', async () => {
+  const { deps, taskLists, fetchFn } = setup();
+  await handleCallback(cb('code=c1&state=nonce-1'), deps);
+  assertEquals(taskLists, []);
+  assertEquals(
+    fetchFn.calls.some((c) => c.url.host === 'tasks.googleapis.com'),
+    false,
+  );
 });

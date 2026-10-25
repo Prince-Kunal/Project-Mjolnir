@@ -1,9 +1,11 @@
 import { assertEquals, assertRejects } from '@std/assert';
 import { CALENDAR_API } from './google.ts';
+import { TASKS_API } from './tasks.ts';
 import { fakeFetch } from './testing.ts';
 import {
   runCheckmark,
   runLinks,
+  runTaskStatus,
   withCheckmark,
   type WriteContext,
   type WriteDeps,
@@ -161,4 +163,55 @@ Deno.test('a links write that loses a race with a Google edit is retried', async
     ),
   );
   await assertRejects(() => runLinks(links, deps));
+});
+
+// Google Tasks completion (3.13) -------------------------------------------------------------------
+
+function taskSetup(status: string, answer = 200) {
+  const log: string[] = [];
+  const fetchFn = fakeFetch({
+    [`${TASKS_API}/lists/list-1/tasks/t1`]: (req) => {
+      log.push(`patch ${req.body}`);
+      return Response.json({ id: 't1', etag: '"t2"' }, { status: answer });
+    },
+  });
+  return {
+    log,
+    deps: {
+      fetchFn,
+      accessToken: () => Promise.resolve('at'),
+      context: () =>
+        Promise.resolve({
+          user_id: 'u1',
+          status,
+          google_active: true,
+          google_task_id: 't1',
+          google_tasklist_id: 'list-1',
+        }),
+      done: (id: string, etag: string) => (log.push(`done ${id} ${etag}`), Promise.resolve()),
+    },
+  };
+}
+
+Deno.test('ticking a Google task completes it in Google and stores the new etag', async () => {
+  const { deps, log } = taskSetup('done');
+  assertEquals(await runTaskStatus({ kind: 'task_status', item_id: 'i1' }, deps), 'written');
+  assertEquals(log, ['patch {"status":"completed"}', 'done i1 "t2"']);
+});
+
+Deno.test('unticking reopens it', async () => {
+  const { deps, log } = taskSetup('pending');
+  await runTaskStatus({ kind: 'task_status', item_id: 'i1' }, deps);
+  assertEquals(log[0], 'patch {"status":"needsAction","completed":null}');
+});
+
+Deno.test('a task deleted in Google is let go; missed items are not written', async () => {
+  assertEquals(
+    await runTaskStatus({ kind: 'task_status', item_id: 'i1' }, taskSetup('done', 404).deps),
+    'gone',
+  );
+  assertEquals(
+    await runTaskStatus({ kind: 'task_status', item_id: 'i1' }, taskSetup('missed').deps),
+    'skipped',
+  );
 });

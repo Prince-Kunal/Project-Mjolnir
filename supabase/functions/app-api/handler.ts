@@ -26,6 +26,14 @@ import { corsHeaders, json } from '../_shared/http.ts';
 import { planEvent } from '../_shared/sync/plan.ts';
 import type { ItemSnapshot, PlanContext, SyncOp } from '../_shared/sync/types.ts';
 import { withCheckmark } from '../_shared/writes.ts';
+import {
+  deleteTask,
+  insertTask,
+  listTaskLists,
+  patchTask,
+  type TaskPatch,
+} from '../_shared/tasks.ts';
+import { planTask, type TaskOp, type TaskSnapshot } from '../_shared/sync/tasks.ts';
 
 export interface AppUser {
   id: string;
@@ -89,6 +97,22 @@ export interface PreparedSchedule {
   color_rules: ColorRule[];
 }
 
+/** Settings and the list new Google tasks go to (svc_task_app_context). */
+export interface TaskAppContext {
+  timezone: string;
+  day_boundary_hour: number;
+  google_item_type: string;
+  list: { id: string; google_tasklist_id: string; points: number } | null;
+}
+
+/** A Google task item app-api is about to change (svc_task_edit_context). */
+export interface TaskEditContext extends TaskSnapshot {
+  source: string;
+  google_active: boolean;
+  task_list_id: string | null;
+  google_tasklist_id: string | null;
+}
+
 interface InboxItem {
   id: string;
   source: string;
@@ -131,6 +155,13 @@ export interface AppApiDeps {
     commit(itemId: string, etag: string): Promise<void>;
     abort(itemId: string): Promise<void>;
   };
+  tasks: {
+    appContext(userId: string): Promise<TaskAppContext>;
+    editContext(userId: string, itemId: string): Promise<TaskEditContext | null>;
+    /** Applies task planner ops like a poll does. Throws RpcError. */
+    applyOps(listId: string, ops: TaskOp[]): Promise<{ applied: number; skipped: number }>;
+    upsertLists(userId: string, lists: { id: string; title: string }[]): Promise<void>;
+  };
   account: {
     /** Live watch channels to stop before the account goes. */
     channels(userId: string): Promise<{ id: string; resource_id: string }[]>;
@@ -163,6 +194,10 @@ const routes: { method: string; pattern: RegExp; handler: Handler }[] = [
   { method: 'DELETE', pattern: /^\/items\/(?<id>[0-9a-f-]{36})$/, handler: deleteItemEvent },
   { method: 'POST', pattern: /^\/items\/(?<id>[0-9a-f-]{36})\/schedule$/, handler: scheduleTask },
   { method: 'DELETE', pattern: /^\/me$/, handler: deleteAccount },
+  { method: 'POST', pattern: /^\/google\/task-lists$/, handler: refreshTaskLists },
+  { method: 'POST', pattern: /^\/tasks$/, handler: createTask },
+  { method: 'PATCH', pattern: /^\/tasks\/(?<id>[0-9a-f-]{36})$/, handler: editTask },
+  { method: 'DELETE', pattern: /^\/tasks\/(?<id>[0-9a-f-]{36})$/, handler: deleteTaskItem },
 ];
 
 /** Path after the function name: `/functions/v1/app-api/google/connect` -> `/google/connect`. */
@@ -213,7 +248,8 @@ export function createAppApi(deps: AppApiDeps) {
 }
 
 /** Plan 8.1 step 1: store a single-use nonce and PKCE verifier, return Google's consent URL. */
-async function connectGoogle(_req: Request, user: AppUser, deps: AppApiDeps): Promise<Response> {
+async function connectGoogle(req: Request, user: AppUser, deps: AppApiDeps): Promise<Response> {
+  const body = await req.json().catch(() => ({}));
   const nonce = randomToken(32);
   const verifier = randomToken(48);
   await deps.saveOAuthState(user.id, nonce, verifier);
@@ -221,6 +257,8 @@ async function connectGoogle(_req: Request, user: AppUser, deps: AppApiDeps): Pr
     state: nonce,
     codeChallenge: await pkceChallenge(verifier),
     loginHint: user.email ?? undefined,
+    // Tasks mode asks for Google Tasks access too (8.1); Events mode never does.
+    tasks: body?.tasks === true,
   });
   return json({ url });
 }
@@ -630,4 +668,130 @@ async function deleteAccount(req: Request, user: AppUser, deps: AppApiDeps): Pro
   }
   await deps.account.deleteUser(user.id);
   return json({ deleted: true, steps });
+}
+
+// Google Tasks mode (3.13, 8.9): the same pattern as events. Google first; its answer then runs
+// through the task planner, so app edits follow the same rules as edits made in Google.
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function taskContext(ctx: TaskAppContext, points: number, now: Date) {
+  return {
+    timeZone: ctx.timezone,
+    boundaryHour: ctx.day_boundary_hour,
+    points,
+    now,
+    since: null,
+  };
+}
+
+async function refreshTaskLists(_req: Request, user: AppUser, deps: AppApiDeps): Promise<Response> {
+  const lists = await listTaskLists(await deps.accessToken(user.id), deps.fetchFn).catch((err) => {
+    if (err instanceof GoogleError && err.status === 403) return null;
+    throw err;
+  });
+  if (!lists) return json({ error: 'Connect Google Tasks first.' }, 409);
+  await deps.tasks.upsertLists(user.id, lists);
+  return json({ lists: lists.length });
+}
+
+async function createTask(req: Request, user: AppUser, deps: AppApiDeps): Promise<Response> {
+  const body = await req.json().catch(() => ({}));
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  const date = body.date ?? null;
+  const points = body.points ?? null;
+  if (!title || (date !== null && !DATE.test(date))) {
+    return json({ error: 'a task needs a title and a YYYY-MM-DD date or none' }, 400);
+  }
+  if (points !== null && ![1, 2, 3].includes(points)) {
+    return json({ error: 'points must be 1 to 3' }, 400);
+  }
+  const ctx = await deps.tasks.appContext(user.id);
+  if (!ctx.list) return json({ error: 'Turn on a Google Tasks list in Settings first.' }, 409);
+
+  const task = await insertTask(
+    await deps.accessToken(user.id),
+    ctx.list.google_tasklist_id,
+    { title, due: date },
+    deps.fetchFn,
+  ).catch((err) => {
+    throw googleRefusalError(err);
+  });
+  const plan = planTask(
+    task,
+    null,
+    taskContext(ctx, points ?? ctx.list.points, deps.now?.() ?? new Date()),
+  );
+  await deps.tasks.applyOps(ctx.list.id, plan.ops);
+  return json({ created: plan.ops.length }, 201);
+}
+
+async function editTask(
+  req: Request,
+  user: AppUser,
+  deps: AppApiDeps,
+  params: Record<string, string>,
+): Promise<Response> {
+  const body = await req.json().catch(() => ({}));
+  const patch: TaskPatch = {};
+  if (typeof body.title === 'string' && body.title.trim()) patch.title = body.title.trim();
+  if (body.date === null || (typeof body.date === 'string' && DATE.test(body.date))) {
+    patch.due = body.date;
+  }
+  if (!Object.keys(patch).length) return json({ error: 'nothing to change' }, 400);
+
+  const item = await deps.tasks.editContext(user.id, params.id!);
+  if (!item || item.source !== 'gtask' || !item.google_active || !item.task_list_id) {
+    return json({ error: 'task not found' }, 404);
+  }
+  if (item.finalized) return json({ error: 'this day is closed' }, 400);
+  const ctx = await deps.tasks.appContext(user.id);
+  const task = await patchTask(
+    await deps.accessToken(user.id),
+    item.google_tasklist_id!,
+    item.google_task_id,
+    patch,
+    deps.fetchFn,
+  ).catch((err) => {
+    throw googleRefusalError(err);
+  });
+  const plan = planTask(task, item, taskContext(ctx, item.points, deps.now?.() ?? new Date()));
+  await deps.tasks.applyOps(item.task_list_id, plan.ops);
+  return json({ item_id: item.id });
+}
+
+async function deleteTaskItem(
+  _req: Request,
+  user: AppUser,
+  deps: AppApiDeps,
+  params: Record<string, string>,
+): Promise<Response> {
+  const item = await deps.tasks.editContext(user.id, params.id!);
+  if (!item || item.source !== 'gtask' || !item.google_active || !item.task_list_id) {
+    return json({ error: 'task not found' }, 404);
+  }
+  await deleteTask(
+    await deps.accessToken(user.id),
+    item.google_tasklist_id!,
+    item.google_task_id,
+    deps.fetchFn,
+  ).catch((err) => {
+    throw googleRefusalError(err);
+  });
+  const ctx = await deps.tasks.appContext(user.id);
+  const plan = planTask(
+    { id: item.google_task_id, deleted: true },
+    item,
+    taskContext(ctx, item.points, deps.now?.() ?? new Date()),
+  );
+  await deps.tasks.applyOps(item.task_list_id, plan.ops);
+  return json({ item_id: item.id });
+}
+
+/** Google's refusal, as the RpcError routes already map to a 400 with a readable message. */
+function googleRefusalError(err: unknown): unknown {
+  if (err instanceof GoogleError && err.status < 500 && err.status !== 401 && err.status !== 429) {
+    return new RpcError('22023', `Google Tasks refused the change (${err.code}).`);
+  }
+  return err;
 }

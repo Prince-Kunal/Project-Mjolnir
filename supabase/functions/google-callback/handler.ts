@@ -8,7 +8,9 @@ import {
   listCalendars,
   missingScopes,
   readIdToken,
+  SCOPE_TASKS,
 } from '../_shared/google.ts';
+import { listTaskLists } from '../_shared/tasks.ts';
 import { redirect } from '../_shared/http.ts';
 
 export class AccountInUseError extends Error {}
@@ -30,6 +32,7 @@ export interface CallbackDeps {
   /** Throws AccountInUseError when the Google account is linked to another app user. */
   saveAccount(args: SaveAccountArgs): Promise<void>;
   upsertCalendars(userId: string, calendars: CalendarListEntry[]): Promise<void>;
+  upsertTaskLists(userId: string, lists: { id: string; title: string }[]): Promise<void>;
   encrypt(plain: string): Promise<string>;
   now?: () => Date;
   fetchFn?: FetchFn;
@@ -42,7 +45,8 @@ export type CallbackOutcome =
   | 'missing_scopes'
   | 'account_in_use'
   | 'token_exchange'
-  | 'calendar_list';
+  | 'calendar_list'
+  | 'task_lists';
 
 /** Sends the browser back to the app only, never to a URL taken from the request. */
 function backToApp(appUrl: string, outcome: CallbackOutcome): Response {
@@ -95,6 +99,17 @@ export async function handleCallback(url: URL, deps: CallbackDeps): Promise<Resp
     );
   } catch {
     return backToApp(deps.appUrl, 'calendar_list');
+  }
+  // Tasks mode (3.13): with the Tasks scope granted, store the task lists too.
+  if (tokens.scope.split(' ').includes(SCOPE_TASKS)) {
+    try {
+      await deps.upsertTaskLists(
+        pending.user_id,
+        await listTaskLists(tokens.access_token, deps.fetchFn),
+      );
+    } catch {
+      return backToApp(deps.appUrl, 'task_lists');
+    }
   }
   return backToApp(deps.appUrl, 'ok');
 }

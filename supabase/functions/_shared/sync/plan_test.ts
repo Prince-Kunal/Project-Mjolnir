@@ -389,3 +389,13 @@ Deno.test('an existing item ignores the properties: the database owns its links'
   assertEquals(op.op, 'update');
   assertEquals('links' in op, false);
 });
+
+Deno.test(
+  'after switching back from Tasks mode, events before the switch make no new items',
+  () => {
+    const c = { ...ctx(), createFrom: '2026-10-21' };
+    assertEquals(planEvent(event(), null, c).ops, []);
+    // An item that already exists still follows its event.
+    assertEquals(only(planEvent(event({ summary: 'Renamed' }), item(), c).ops).op, 'update');
+  },
+);

@@ -2,6 +2,7 @@
 // event's private properties (3.8). Each job reads the item's current state, so repeated or
 // out-of-order jobs converge on the right result.
 import { appProperties, type EventPatch, type FetchFn, GoogleError, patchEvent } from './google.ts';
+import { patchTask } from './tasks.ts';
 
 export interface CheckmarkJob {
   kind: 'checkmark';
@@ -87,6 +88,49 @@ async function write(
     }
     // 412 (changed in Google since we read it) and transient errors retry after the timeout,
     // by which time the sync has stored the newer etag and title.
+    throw err;
+  }
+}
+
+// Google Tasks mode (3.13): ticking completes the task in Google, unticking reopens it --------------
+
+export interface TaskStatusJob {
+  kind: 'task_status';
+  item_id: string;
+}
+
+export interface TaskWriteContext {
+  user_id: string;
+  status: string;
+  google_active: boolean;
+  google_task_id: string;
+  google_tasklist_id: string;
+}
+
+export interface TaskWriteDeps {
+  context(itemId: string): Promise<TaskWriteContext | null>;
+  /** Stores Google's new etag, so the next poll skips the echo. */
+  done(itemId: string, etag: string): Promise<void>;
+  accessToken(userId: string): Promise<string>;
+  fetchFn?: FetchFn;
+}
+
+/** Writes the item's current state, so repeated or out-of-order jobs converge. */
+export async function runTaskStatus(job: TaskStatusJob, deps: TaskWriteDeps): Promise<string> {
+  const ctx = await deps.context(job.item_id);
+  if (!ctx || !ctx.google_active || !['done', 'pending'].includes(ctx.status)) return 'skipped';
+  try {
+    const task = await patchTask(
+      await deps.accessToken(ctx.user_id),
+      ctx.google_tasklist_id,
+      ctx.google_task_id,
+      { status: ctx.status === 'done' ? 'completed' : 'needsAction' },
+      deps.fetchFn,
+    );
+    await deps.done(job.item_id, task.etag);
+    return 'written';
+  } catch (err) {
+    if (err instanceof GoogleError && (err.status === 404 || err.status === 410)) return 'gone';
     throw err;
   }
 }
