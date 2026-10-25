@@ -126,11 +126,12 @@ function WeekMarks({
             title={label}
             aria-label={label}
           >
+            {/* Every mark keeps one height so the row stays level; a rest-pass day is hollow. */}
             <span
-              className={`w-full rounded-full ${isToday ? 'outline-2 outline-offset-2 outline-text' : ''}`}
+              className={`h-[18px] w-full rounded-full border-2 ${isToday ? 'outline-2 outline-offset-2 outline-text' : ''}`}
               style={{
-                height: d?.rest_pass_used ? 10 : 18,
-                background: color,
+                borderColor: color,
+                background: d?.rest_pass_used ? 'transparent' : color,
                 opacity: isToday && !d?.finalized ? 0.85 : 1,
               }}
             />

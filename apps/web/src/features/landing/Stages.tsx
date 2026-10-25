@@ -297,8 +297,11 @@ function KeepFragment({
         {week.map((w) => (
           <li key={w.d} className="flex flex-col items-center gap-2" title={`${w.d}: ${w.rate}%`}>
             <span
-              className={`w-full rounded-full ${'today' in w ? 'outline-2 outline-offset-2 outline-text' : ''}`}
-              style={{ height: 'pass' in w ? 12 : 22, background: BAND_COLOR[w.band] }}
+              className={`h-[22px] w-full rounded-full border-2 ${'today' in w ? 'outline-2 outline-offset-2 outline-text' : ''}`}
+              style={{
+                borderColor: BAND_COLOR[w.band],
+                background: 'pass' in w ? 'transparent' : BAND_COLOR[w.band],
+              }}
             />
             <span className="text-[13px] text-faint">{w.d.slice(0, 1)}</span>
           </li>
@@ -307,7 +310,7 @@ function KeepFragment({
       <p className="mt-5 text-[15px] text-faint">
         {broke
           ? 'Sunday under 50% after Saturday’s slip: a second bad day breaks the streak. Tick a block on “Tick” and look again.'
-          : 'Saturday fell under 50% and used the week’s rest pass, cut short like the hammer’s handle.'}
+          : 'Saturday fell under 50% and used the week’s rest pass, so its mark is hollow and the streak holds.'}
       </p>
     </div>
   );
