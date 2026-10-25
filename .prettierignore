@@ -7,3 +7,7 @@ packages/db-types/src/database.ts
 docs/PLAN.md
 supabase/tests/03_scoring_cases.test.sql
 supabase/tests/05_streak_cases.test.sql
+
+# Vendored agent skills (npx skills add); kept as their authors ship them.
+.claude/
+skills-lock.json

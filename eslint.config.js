@@ -11,6 +11,8 @@ export default tseslint.config(
       '**/dev-dist/**',
       '**/coverage/**',
       'packages/db-types/src/database.ts',
+      // Vendored agent skills (npx skills add), kept as their authors ship them.
+      '.claude/**',
       // Edge Functions are Deno code, checked by `deno lint`.
       'supabase/functions/**',
     ],
@@ -18,7 +20,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'apps/*/scripts/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
   {
