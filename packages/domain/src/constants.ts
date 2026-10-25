@@ -14,3 +14,6 @@ export const STREAK_THRESHOLD = 50;
 
 /** Section 3.9: "No sessions scheduled" warning horizon, in days. */
 export const DEFAULT_DEADLINE_WARNING_DAYS = 7;
+
+/** Decision 16: a finished day stays open for ticks until this local hour the next day. */
+export const DAY_FREEZE_HOUR = 12;

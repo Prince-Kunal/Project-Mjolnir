@@ -109,7 +109,7 @@ export function LandingPage() {
             {STAGE[chapter]!.caption}
           </p>
           <div className="absolute inset-x-0 bottom-0 flex h-14 items-center justify-between gap-4 bg-surface px-6 text-[15px] text-muted">
-            <span>The day closes at 04:00</span>
+            <span>Ticks count until noon next day</span>
             <span>Excellent from 85%</span>
           </div>
         </div>
@@ -242,7 +242,7 @@ export function LandingPage() {
           <Chapter
             index={4}
             title="Excellent strikes at 85%"
-            text="A day is points done over points planned. 85% is Excellent, 75% Good, 50% Fair, and 50% keeps the streak alive. The day closes at four in the morning, so a late session counts for the day you planned it."
+            text="A day is points done over points planned. 85% is Excellent, 75% Good, 50% Fair, and 50% keeps the streak alive. The day ends at four in the morning, so a late session counts for the day you planned it, and ticks count until noon."
           >
             <div aria-label="Bands: Not good under 50%, Fair from 50%, Good from 75%, Excellent from 85%">
               <div className="flex h-3 gap-[3px]">
@@ -364,8 +364,8 @@ function Letter() {
           worked until the week got busy, which is when it mattered.
         </p>
         <p data-reveal>
-          Mjolnir does the counting. The colour I already give a block is its worth, the day closes
-          at four in the morning, and a block dragged to tomorrow after it started counts as missed,{' '}
+          Mjolnir does the counting. The colour I already give a block is its worth, the day ends at
+          four in the morning, and a block dragged to tomorrow after it started counts as missed,{' '}
           <span className="bg-[#3a3014] px-1 text-[#f0d79b]">because it was</span>.
         </p>
         <p data-reveal>
@@ -451,7 +451,7 @@ function Closing({ signedIn }: { signedIn: boolean }) {
             ))}
           </div>
           <label className="mt-5 block">
-            <span className="mb-2 block text-[14px] font-medium">The day closes at</span>
+            <span className="mb-2 block text-[14px] font-medium">The day ends at</span>
             <input
               type="time"
               value={close}

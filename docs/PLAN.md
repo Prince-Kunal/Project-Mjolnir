@@ -223,6 +223,7 @@ The owner's answers fixed most rules. The 15 below filled gaps; each is already 
 | 13 | The day lives in Google Calendar as events by default; Google Tasks is a per-user setting (3.13) | The owner plans with events; other users may prefer tasks. |
 | 14 | Google Calendar access is a separate Connect step after sign-in, run by Edge Functions | Google's refresh token never reaches the browser, and reconnecting is simple. |
 | 15 | Free-plan safeguards: a keep-alive ping every 3 days and a weekly encrypted backup | Free projects pause after a quiet week and get no daily backups. |
+| 16 | A finished day stays open for ticks until 12:00 local time the next day, then freezes (missed items, frozen score, streak) | A block done late at night can be ticked over breakfast, so ticking never pulls attention from the work itself. The 04:00 boundary still decides which day a block belongs to. |
 
 ## 5. Features
 

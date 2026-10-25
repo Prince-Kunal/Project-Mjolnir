@@ -1,5 +1,5 @@
 begin;
-select plan(38);
+select plan(40);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'a@example.com'),
@@ -32,12 +32,22 @@ insert into public.items (id, user_id, source, title, raw_title, points, status,
 insert into public.item_tags (item_id, tag_id, source) values
   ('a0000000-0000-0000-0000-000000000002', 'a3000000-0000-0000-0000-000000000001', 'hashtag');
 
--- Due jobs close every finished day since onboarding, oldest first, but not today -------------
+-- Due jobs close every finished day since onboarding, oldest first, once it passes its freeze --
 
-select is(private.schedule_due_jobs(), 2, 'two finished days are closed (two days ago and yesterday)');
-select is(private.schedule_due_jobs(), 0, 'running the job again closes nothing new');
+select is(private.schedule_due_jobs(((select today from d) + time '11:00') at time zone 'UTC'), 1,
+  'at 11:00 only the day before yesterday closes');
 select ok(
-  not exists (select 1 from public.day_summaries where logical_date = (select today from d)),
+  not exists (select 1 from public.day_summaries where user_id = '11111111-1111-1111-1111-111111111111'
+    and logical_date = (select today from d) - 1),
+  'yesterday stays open for late ticks until 12:00'
+);
+select is(private.schedule_due_jobs(((select today from d) + time '12:00') at time zone 'UTC'), 1,
+  'at 12:00 yesterday freezes');
+select is(private.schedule_due_jobs(((select today from d) + time '12:00') at time zone 'UTC'), 0,
+  'running the job again closes nothing new');
+select ok(
+  not exists (select 1 from public.day_summaries where user_id = '11111111-1111-1111-1111-111111111111'
+    and logical_date = (select today from d)),
   'today is not judged until its close'
 );
 select is(

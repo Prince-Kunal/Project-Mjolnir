@@ -49,6 +49,8 @@ export interface DayView {
   date: string;
   today: string;
   finalized: boolean;
+  /** When the day's score freezes (decision 16): ticks still count until then. */
+  freezes_at: string;
   score: DayScore;
   note: string | null;
   streak: StreakInfo;

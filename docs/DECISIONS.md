@@ -151,3 +151,7 @@ Choices the plan does not cover, one line each, with the reason. Newest at the b
   - Ticking in the app queues a `task_status` write without If-Match; the write is idempotent because it reads the item's current state.
   - In Tasks mode, quick add creates Google tasks: a time is ignored, with a note in the preview.
   - Nothing stays to backfill: tasks due before the switch, completed tasks with no date, and hidden ones are not imported.
+
+## After Phase 8
+
+- **Noon freeze** (decision 16): `private.freeze_at(user, date)` is 12:00 local on the day after, or the day's end if the boundary is later. `schedule_due_jobs(p_now)` closes a day only once it passes that time, so ticks, edits and sync on yesterday keep working through the morning. The morning prompt leads with yesterday's unticked points while it is open, Today shows a "Yesterday is open until 12:00" note, and an open past day reads "Open until 12:00 today". "Mark done (forgot to tick)" still covers the 48 hours after the freeze.

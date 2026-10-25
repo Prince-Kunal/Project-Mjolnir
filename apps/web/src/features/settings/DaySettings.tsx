@@ -60,7 +60,8 @@ export function DaySettings({
         </select>
         <span className="mt-1 block text-xs text-muted">
           A block that starts before this time counts for the previous day. 04:00 means a 00:30
-          session belongs to the evening it was planned in.
+          session belongs to the evening it was planned in. Ticks still count until 12:00 the next
+          day; then the score freezes.
         </span>
       </label>
 

@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(17);
 
 -- A works in UTC with a midnight boundary: logical days are calendar days, and p_now picks the time.
 insert into auth.users (id, email) values
@@ -78,9 +78,18 @@ select is(
   'the evening reminder counts what is left today'
 );
 
+-- The next morning, today's unticked report belongs to a day that is still open until 12:00.
+select private.queue_push_prompts(pg_temp.at(1, '08:30'));
+select results_eq(
+  $$ select message ->> 'title', message ->> 'url' from pgmq.q_jobs
+     where message ->> 'tag' = 'morning' order by msg_id desc limit 1 $$,
+  $$ values ('Yesterday is open until 12:00', '/?date=' || current_date) $$,
+  'the morning prompt leads with yesterday while a tick still counts'
+);
+
 update public.profiles set notify_morning = false where id = '11111111-1111-1111-1111-111111111111';
 select private.queue_push_prompts(pg_temp.at(2, '08:05'));
-select is(pg_temp.pushes('11111111-1111-1111-1111-111111111111', 'morning'), 1::bigint, 'each prompt can be turned off');
+select is(pg_temp.pushes('11111111-1111-1111-1111-111111111111', 'morning'), 2::bigint, 'each prompt can be turned off');
 
 select public.svc_push_gone('https://push.example/a1');
 select is(jsonb_array_length(public.svc_push_subscriptions('11111111-1111-1111-1111-111111111111')), 0,

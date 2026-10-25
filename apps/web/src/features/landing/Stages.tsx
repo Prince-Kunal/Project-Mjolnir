@@ -7,13 +7,13 @@ import { COLOR_HEX, COLOR_MAP, SAMPLE_DAY, type SampleBlock, scoreSample } from 
 const STAGES = [
   { name: 'Plan', clause: 'Plan the day in your colours' },
   { name: 'Tick', clause: 'Tick each block as you go' },
-  { name: 'Close', clause: 'At four, the day closes' },
+  { name: 'Close', clause: 'At noon, the day freezes' },
   { name: 'Keep', clause: 'The streak keeps one slip' },
 ] as const;
 
 /**
  * How it works (the live thing): one slider drives a sample day through planning, ticking, the
- * 04:00 close and the streak. On "Tick", the blocks can be ticked and the forge ring fills; past
+ * noon freeze and the streak. On "Tick", the blocks can be ticked and the forge ring fills; past
  * 85% the hammer strikes, at 100% lightning lands.
  */
 export function Stages() {
@@ -45,7 +45,7 @@ export function Stages() {
           {stage === 1 &&
             'Tick the blocks you finish, here or on your phone. The ring fills band by band, and a check mark appears in Google Calendar. Try it: tick the rest of this sample day.'}
           {stage === 2 &&
-            'Sessions run past midnight, so the day ends at 04:00. Anything unticked becomes a miss and waits in the inbox, the way the hammer always comes back.'}
+            'Sessions run past midnight, so the day ends at 04:00, and ticks still count until noon. Then anything unticked becomes a miss and waits in the inbox, the way the hammer always comes back.'}
           {stage === 3 &&
             'A day at 50% or more counts. One bad day a week is forgiven, like Brokkr’s pause at the bellows; a second breaks the streak.'}
         </p>
@@ -231,7 +231,7 @@ function CloseFragment({
     <div className="rounded-[18px] bg-bg p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-[15px] text-faint">Sunday 25 October · closed 04:00</p>
+          <p className="text-[15px] text-faint">Sunday 25 October · frozen Monday 12:00</p>
           <p className="mt-1 font-display text-[28px] leading-none tabular-nums">
             {score.rate}%{' '}
             <span className="font-sans text-[16px]" style={{ color: BAND_COLOR[score.band] }}>

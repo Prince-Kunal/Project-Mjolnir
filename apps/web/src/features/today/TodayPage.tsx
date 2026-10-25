@@ -114,7 +114,9 @@ export function TodayPage() {
   const open = view.items.find((i) => i.id === openId) ?? null;
   const line = view.finalized
     ? 'Day closed · score frozen'
-    : finding(view.items, isToday, now, profile.timezone);
+    : view.date < view.today
+      ? `Open until ${formatTime(view.freezes_at, profile.timezone)}${view.date === addDays(view.today, -1) ? ' today' : ''} · tick what you finished`
+      : finding(view.items, isToday, now, profile.timezone);
 
   function onToggle(item: DayItem) {
     const done = item.status !== 'done';
@@ -196,6 +198,13 @@ export function TodayPage() {
 
       <div className="mt-6 grid gap-6 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_368px]">
         <div className="min-w-0">
+          {isToday && (
+            <YesterdayOpen
+              date={addDays(view.today, -1)}
+              timeZone={profile.timezone}
+              onOpen={() => go(addDays(view.today, -1))}
+            />
+          )}
           {view.missed_open > 0 && (
             <Link
               to="/missed"
@@ -310,6 +319,43 @@ function DayArrow({ dir, onClick }: { dir: 'prev' | 'next'; onClick(): void }) {
           strokeLinejoin="round"
         />
       </svg>
+    </button>
+  );
+}
+
+/**
+ * Decision 16: yesterday stays open until noon, so a block finished late can be ticked over
+ * breakfast. A quiet note while it still has unticked points; gone once it freezes.
+ */
+function YesterdayOpen({
+  date,
+  timeZone,
+  onOpen,
+}: {
+  date: string;
+  timeZone: string;
+  onOpen(): void;
+}) {
+  const { data } = useDay(date);
+  if (!data || data.finalized) return null;
+  const open = data.items
+    .filter((i) => i.status === 'pending' && i.points > 0)
+    .reduce((n, i) => n + i.points, 0);
+  if (!open) return null;
+  return (
+    <button
+      onClick={onOpen}
+      className="mb-6 flex w-full items-center justify-between gap-4 rounded-[var(--radius-card)] bg-surface px-5 py-4 text-left transition hover:bg-surface-2"
+    >
+      <span className="min-w-0 text-[16px]">
+        Yesterday is open until {formatTime(data.freezes_at, timeZone)}
+        <span className="block text-[15px] text-muted">
+          {open} point{open === 1 ? '' : 's'} unticked. Tick what you finished.
+        </span>
+      </span>
+      <span className="shrink-0 rounded-full bg-text px-3.5 py-1.5 text-[14px] font-medium text-bg">
+        Open yesterday
+      </span>
     </button>
   );
 }

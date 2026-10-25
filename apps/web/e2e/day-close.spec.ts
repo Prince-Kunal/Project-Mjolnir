@@ -21,6 +21,37 @@ test.afterEach(async () => {
   await user?.remove();
 });
 
+test('yesterday stays open until noon, so a late tick still counts', async ({ browser }) => {
+  // A fixed-offset zone where it is now morning, so yesterday has not reached its noon freeze.
+  const morning = sql(
+    `select name from pg_timezone_names where name like 'Etc/GMT%' and extract(hour from now() at time zone name) between 5 and 10 order by name limit 1`,
+  );
+  sql(`update public.profiles set timezone = '${morning}' where id = '${user.id}'`);
+  today = ((await user.rpc('day_view')) as { today: string }).today;
+  yesterday = sql(`select '${today}'::date - 1`);
+  await user.rpc('create_manual_task', { p_title: 'Late session', p_points: 2, p_date: yesterday });
+  sql(`select private.schedule_due_jobs()`);
+
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await signIn(context, user);
+  const page = await context.newPage();
+  await page.goto('/');
+
+  await page.getByRole('button', { name: /Yesterday is open until 12:00/ }).click();
+  await expect(page.getByText('Open until 12:00 today · tick what you finished')).toBeVisible();
+  const box = page.getByRole('checkbox', { name: 'Tick Late session' });
+  await box.click();
+  await expect(box).toHaveAttribute('aria-checked', 'true');
+
+  sql(`select private.schedule_due_jobs(private.freeze_at('${user.id}', '${yesterday}'))`);
+  expect(
+    sql(
+      `select done_points || '/' || planned_points from public.day_summaries where user_id = '${user.id}' and logical_date = '${yesterday}'`,
+    ),
+  ).toBe('2/2');
+  await context.close();
+});
+
 test('a rescheduled task is missed on its original day and pending on the new day', async ({
   browser,
 }) => {
