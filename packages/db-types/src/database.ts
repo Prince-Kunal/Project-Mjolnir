@@ -265,13 +265,13 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_url": string | null,"created_at": string,"day_boundary_hour": number,"deadline_warning_days": number,"evening_reminder_time": string,"google_item_type": string,"id": string,"include_all_day": boolean,"morning_prompt_time": string,"name": string | null,"notify_deadlines": boolean,"notify_evening": boolean,"notify_morning": boolean,"onboarded_at": string | null,"timezone": string,"week_start": number,"writeback_checkmark": boolean
+                    "avatar_url": string | null,"created_at": string,"day_boundary_hour": number,"deadline_warning_days": number,"evening_reminder_time": string,"google_item_type": string,"google_item_type_since": string,"id": string,"include_all_day": boolean,"morning_prompt_time": string,"name": string | null,"notify_deadlines": boolean,"notify_evening": boolean,"notify_morning": boolean,"onboarded_at": string | null,"timezone": string,"week_start": number,"writeback_checkmark": boolean
                   }
                   Insert: {
-                    "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"id": string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"notify_deadlines"?: boolean,"notify_evening"?: boolean,"notify_morning"?: boolean,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
+                    "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"google_item_type_since"?: string,"id": string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"notify_deadlines"?: boolean,"notify_evening"?: boolean,"notify_morning"?: boolean,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
                   }
                   Update: {
-                    "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"id"?: string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"notify_deadlines"?: boolean,"notify_evening"?: boolean,"notify_morning"?: boolean,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
+                    "avatar_url"?: string | null,"created_at"?: string,"day_boundary_hour"?: number,"deadline_warning_days"?: number,"evening_reminder_time"?: string,"google_item_type"?: string,"google_item_type_since"?: string,"id"?: string,"include_all_day"?: boolean,"morning_prompt_time"?: string,"name"?: string | null,"notify_deadlines"?: boolean,"notify_evening"?: boolean,"notify_morning"?: boolean,"onboarded_at"?: string | null,"timezone"?: string,"week_start"?: number,"writeback_checkmark"?: boolean
                   }
                   Relationships: [
                     
@@ -480,6 +480,9 @@ isOneToOne: false
 "svc_apply_sync_ops":
 { Args: { "p_calendar_id": string,"p_ops": Json,"p_seen"?: (string)[] }; Returns: Json
                            },
+"svc_apply_task_ops":
+{ Args: { "p_list_id": string,"p_ops": Json,"p_seen"?: (string)[] }; Returns: Json
+                           },
 "svc_channel_get":
 { Args: { "p_id": string }; Returns: Json
                            },
@@ -555,6 +558,9 @@ isOneToOne: false
 "svc_schedule_prepare":
 { Args: { "p_end": string,"p_item_id": string,"p_start": string,"p_user_id": string }; Returns: Json
                            },
+"svc_source_kind":
+{ Args: { "p_source_id": string }; Returns: string
+                           },
 "svc_sync_checkpoint":
 { Args: { "p_page_token"?: string,"p_source_id": string }; Returns: undefined
                            },
@@ -573,11 +579,32 @@ isOneToOne: false
 "svc_sync_unseen":
 { Args: { "p_calendar_id": string }; Returns: Json[]
                            },
+"svc_task_app_context":
+{ Args: { "p_user_id": string }; Returns: Json
+                           },
+"svc_task_edit_context":
+{ Args: { "p_item_id": string,"p_user_id": string }; Returns: Json
+                           },
+"svc_task_finish":
+{ Args: { "p_list_id": string }; Returns: undefined
+                           },
+"svc_task_items":
+{ Args: { "p_list_id": string,"p_task_ids": (string)[] }; Returns: Json[]
+                           },
+"svc_task_lease":
+{ Args: { "p_lease_seconds"?: number,"p_list_id": string }; Returns: Json
+                           },
+"svc_task_write_context":
+{ Args: { "p_item_id": string }; Returns: Json
+                           },
 "svc_update_google_tokens":
 { Args: { "p_access_expires_at": string,"p_access_token_enc": string,"p_status": string,"p_user_id": string }; Returns: undefined
                            },
 "svc_upsert_calendars":
 { Args: { "p_calendars": Json,"p_user_id": string }; Returns: undefined
+                           },
+"svc_upsert_task_lists":
+{ Args: { "p_lists": Json,"p_user_id": string }; Returns: undefined
                            },
 "svc_user_channels":
 { Args: { "p_user_id": string }; Returns: Json
