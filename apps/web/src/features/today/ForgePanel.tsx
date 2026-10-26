@@ -80,7 +80,7 @@ export function ForgePanel({
           </p>
           {atRisk && <span className="text-[14px] text-band-fair">At risk today</span>}
         </div>
-        {!compact && <WeekMarks today={today} weekStart={weekStart} live={score} />}
+        {!compact && <WeekMarks date={date} today={today} weekStart={weekStart} live={score} />}
         <p className="mt-3 text-[14px] text-faint">
           {passUsed
             ? `Rest pass used ${formatWeekday(streak.pass_used_on!)}: one slip a week, like Brokkr at the bellows.`
@@ -91,34 +91,42 @@ export function ForgePanel({
   );
 }
 
-/** This week, one mark per day: a closed day in its band, today live, a rest-pass day cut short. */
+/**
+ * The week of the day being viewed, one mark per day: each day in its band, the viewed day
+ * outlined with its live score, a rest-pass day hollow, days still to come empty.
+ */
 function WeekMarks({
+  date: viewed,
   today,
   weekStart,
   live,
 }: {
+  date: string;
   today: string;
   weekStart: number;
   live: DayScore;
 }) {
-  const first = weekKey(today, weekStart);
+  const first = weekKey(viewed, weekStart);
   const { data: days = [] } = useDaysRange(first, addDays(first, 6));
   return (
-    <ol className="mt-4 grid grid-cols-7 gap-1.5" aria-label="This week">
+    <ol
+      className="mt-4 grid grid-cols-7 gap-1.5"
+      aria-label={viewed === today ? 'This week' : 'That week'}
+    >
       {Array.from({ length: 7 }, (_, i) => {
         const date = addDays(first, i);
         const d = days.find((x) => x.date === date);
-        const isToday = date === today;
+        const isViewed = date === viewed;
         const future = date > today;
-        const band = isToday ? live.band : d?.band;
-        const planned = isToday ? live.planned : (d?.planned ?? 0);
+        const band = isViewed ? live.band : d?.band;
+        const planned = isViewed ? live.planned : (d?.planned ?? 0);
         const color =
           future || !planned ? 'var(--color-surface-2)' : BAND_COLOR[band ?? 'not_good'];
         const label = future
           ? `${formatWeekday(date)}: to come`
           : !planned
             ? `${formatWeekday(date)}: nothing planned`
-            : `${formatWeekday(date)}: ${isToday ? live.rate : d?.rate}%${d?.rest_pass_used ? ', rest pass' : ''}`;
+            : `${formatWeekday(date)}: ${isViewed ? live.rate : d?.rate}%${d?.rest_pass_used ? ', rest pass' : ''}`;
         return (
           <li
             key={date}
@@ -128,14 +136,14 @@ function WeekMarks({
           >
             {/* Every mark keeps one height so the row stays level; a rest-pass day is hollow. */}
             <span
-              className={`h-[18px] w-full rounded-full border-2 ${isToday ? 'outline-2 outline-offset-2 outline-text' : ''}`}
+              className={`h-[18px] w-full rounded-full border-2 ${isViewed ? 'outline-2 outline-offset-2 outline-text' : ''}`}
               style={{
                 borderColor: color,
                 background: d?.rest_pass_used ? 'transparent' : color,
-                opacity: isToday && !d?.finalized ? 0.85 : 1,
+                opacity: isViewed && !d?.finalized ? 0.85 : 1,
               }}
             />
-            <span className={`text-[12px] ${isToday ? 'text-text' : 'text-faint'}`}>
+            <span className={`text-[12px] ${isViewed ? 'text-text' : 'text-faint'}`}>
               {formatWeekday(date).slice(0, 1)}
             </span>
           </li>
