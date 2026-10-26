@@ -25,7 +25,7 @@ export function QuickAddDialog() {
       open={open}
       onOpenChange={setOpen}
       title="Quick add"
-      description="A time makes a Google Calendar event; a day, or nothing, makes a task. !1 to !3 sets points."
+      description="A time makes a Google Calendar event; a day, or nothing, makes a task. !1 to !3 sets points; Schedule puts a block on your calendar only. Type # for tags."
     >
       {day && <QuickAdd stacked defaultDate={day.today} autoFocus onDone={() => setOpen(false)} />}
     </Sheet>

@@ -238,7 +238,10 @@ reset role;
 
 -- Dispatcher ---------------------------------------------------------------------------------
 
+-- Every queue the dispatcher watches, so jobs left by other local runs do not count.
 delete from pgmq.q_sync_jobs;
+delete from pgmq.q_jobs;
+delete from pgmq.q_google_writes;
 select is(private.dispatch(), false, 'the dispatcher calls nothing when queues are empty');
 
 -- Seeded locally; created here when the seed has not run (CI).

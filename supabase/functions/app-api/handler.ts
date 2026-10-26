@@ -397,14 +397,21 @@ function planContext(ctx: AppContext, now: Date): PlanContext {
 
 /** Google colour for points, or null for the calendar default. Throws when no colour maps to it. */
 function colorFor(rules: ColorRule[], points: number): string | null {
-  const key = colorForPoints(rules, points as 1 | 2 | 3);
-  if (!key)
-    throw new RpcError('22023', `No colour is worth ${points} points. Map one in Settings.`);
+  const key = colorForPoints(rules, points as 0 | 1 | 2 | 3);
+  if (!key) {
+    throw new RpcError(
+      '22023',
+      points === 0
+        ? 'No colour is worth 0 points, so there is no schedule-only colour. Map one in Settings.'
+        : `No colour is worth ${points} points. Map one in Settings.`,
+    );
+  }
   return key === 'default' ? null : key;
 }
 
-function validPoints(v: unknown): v is 1 | 2 | 3 {
-  return v === 1 || v === 2 || v === 3;
+/** An event's points: 1 to 3, or 0 for a schedule-only block that is never a task. */
+function validPoints(v: unknown): v is 0 | 1 | 2 | 3 {
+  return v === 0 || v === 1 || v === 2 || v === 3;
 }
 
 /** Gives new items (create, or the new slot of a replace) ids chosen here. */
@@ -446,7 +453,7 @@ async function createEvent(req: Request, user: AppUser, deps: AppApiDeps): Promi
     Date.parse(body.end) <= Date.parse(body.start)
   ) {
     return json(
-      { error: 'title, points (1 to 3), start and end are required, with end after start' },
+      { error: 'title, points (0 to 3), start and end are required, with end after start' },
       400,
     );
   }
@@ -517,7 +524,7 @@ async function editEvent(
     patch.summary = withCheckmark(title, item.status === 'done' && ctx.writeback_checkmark);
   }
   if (body.points !== undefined) {
-    if (!validPoints(body.points)) return json({ error: 'points must be 1 to 3' }, 400);
+    if (!validPoints(body.points)) return json({ error: 'points must be 0 to 3' }, 400);
     patch.colorId = colorFor(ctx.color_rules, body.points);
   }
   if (body.start !== undefined || body.end !== undefined) {

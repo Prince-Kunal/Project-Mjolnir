@@ -41,16 +41,23 @@ export function pointsForColor(
   return rules.find((r) => r.colorKey === key)?.points ?? 0;
 }
 
-/** The colour the app sets when writing an event worth `points`, or null if none maps to it. */
-export function colorForPoints(rules: readonly ColorRule[], points: 1 | 2 | 3): ColorKey | null {
-  const mapped = rules.filter((r) => r.points === points);
-  return (mapped.find((r) => r.primaryForPoints) ?? mapped[0])?.colorKey ?? null;
+/**
+ * The colour the app sets when writing an event worth `points`, or null if none maps to it.
+ * 0 points is a schedule-only event: a real colour (never the calendar default), Graphite unless
+ * another 0-point colour is marked primary.
+ */
+export function colorForPoints(rules: readonly ColorRule[], points: Points): ColorKey | null {
+  const mapped = rules.filter(
+    (r) => r.points === points && (points > 0 || r.colorKey !== 'default'),
+  );
+  const fallback = points === 0 ? mapped.find((r) => r.colorKey === '8') : undefined;
+  return (mapped.find((r) => r.primaryForPoints) ?? fallback ?? mapped[0])?.colorKey ?? null;
 }
 
-/** Exactly one primary per points value in use; none for 0 points. Keeps a valid primary. */
+/** Exactly one primary per points value in use, 0 included. Keeps a valid primary. */
 export function normalizePrimaries(rules: readonly ColorRule[]): ColorRule[] {
   const chosen = new Map<Points, ColorKey>();
-  for (const p of [1, 2, 3] as const) {
+  for (const p of [0, 1, 2, 3] as const) {
     const key = colorForPoints(rules, p);
     if (key) chosen.set(p, key);
   }
@@ -69,7 +76,7 @@ export function setRulePoints(
 
 export function setPrimary(rules: readonly ColorRule[], colorKey: ColorKey): ColorRule[] {
   const target = rules.find((r) => r.colorKey === colorKey);
-  if (!target || target.points === 0) return [...rules];
+  if (!target || (target.points === 0 && colorKey === 'default')) return [...rules];
   return rules.map((r) =>
     r.points === target.points ? { ...r, primaryForPoints: r.colorKey === colorKey } : r,
   );

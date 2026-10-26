@@ -1,6 +1,7 @@
 import { parseTitle } from '@mjolnir/domain';
 import { useState } from 'react';
 import { useCreateTask } from '../../lib/day.ts';
+import { TagInput } from '../../components/TagInput.tsx';
 
 /** A manual task worth 1 to 3 points, for `date` or the backlog (null). #tags in the title link. */
 export function QuickAddTask({
@@ -22,13 +23,15 @@ export function QuickAddTask({
   }
 
   return (
-    <form onSubmit={submit} className="flex items-center gap-2">
-      <input
+    <form onSubmit={submit} className="flex items-start gap-2">
+      <TagInput
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={setText}
+        chips={text.trim().length > 0}
+        boxClassName="flex-1"
         placeholder={placeholder}
         aria-label="New task"
-        className="min-w-0 flex-1 rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 text-sm placeholder:text-muted focus:outline-2 focus:outline-bone/50"
+        className="h-10 rounded-[var(--radius-inner)] bg-surface-2 px-3 py-2 text-sm placeholder:text-muted focus:outline-2 focus:outline-bone/50"
       />
       <div role="radiogroup" aria-label="Points" className="flex rounded-full bg-surface-2 p-1">
         {[1, 2, 3].map((p) => (

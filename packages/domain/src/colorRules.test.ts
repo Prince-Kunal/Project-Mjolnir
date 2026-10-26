@@ -96,17 +96,31 @@ describe('normalizePrimaries', () => {
 
   it('keeps an existing valid primary', () => {
     const out = normalizePrimaries(rules({ '2': 3, '11': 3 }, ['11']));
-    expect(out.find((r) => r.primaryForPoints)?.colorKey).toBe('11');
+    expect(out.find((r) => r.points === 3 && r.primaryForPoints)?.colorKey).toBe('11');
   });
 
   it('keeps only the first of two primaries for one value', () => {
     const out = normalizePrimaries(rules({ '2': 3, '11': 3 }, ['2', '11']));
-    expect(out.filter((r) => r.primaryForPoints).map((r) => r.colorKey)).toEqual(['2']);
+    expect(out.filter((r) => r.points === 3 && r.primaryForPoints).map((r) => r.colorKey)).toEqual([
+      '2',
+    ]);
   });
 
-  it('never marks a 0-point colour primary', () => {
-    const out = normalizePrimaries(rules({}, ['3']));
-    expect(out.some((r) => r.primaryForPoints)).toBe(false);
+  it('marks one 0-point colour primary for schedule-only events, Graphite by default', () => {
+    const out = normalizePrimaries(rules({ default: 1 }));
+    expect(out.filter((r) => r.points === 0 && r.primaryForPoints).map((r) => r.colorKey)).toEqual([
+      '8',
+    ]);
+    expect(colorForPoints(normalizePrimaries(rules({}, ['3'])), 0)).toBe('3');
+  });
+
+  it('never writes a schedule-only event in the calendar default colour', () => {
+    const only = COLOR_KEYS.map((colorKey) => ({
+      colorKey,
+      points: (colorKey === 'default' ? 0 : 1) as 0 | 1,
+      primaryForPoints: false,
+    }));
+    expect(colorForPoints(only, 0)).toBeNull();
   });
 });
 
@@ -124,9 +138,10 @@ describe('setRulePoints and setPrimary', () => {
     expect(out.filter((r) => r.primaryForPoints)).toHaveLength(1);
   });
 
-  it('ignores setPrimary on a 0-point colour', () => {
-    const start = rules({ default: 1 }, ['default']);
-    expect(setPrimary(start, '4')).toEqual(start);
+  it('lets a 0-point colour be the schedule-only colour, but not the calendar default', () => {
+    const start = rules({ '2': 1 }, ['2']);
+    expect(colorForPoints(setPrimary(start, '4'), 0)).toBe('4');
+    expect(setPrimary(start, 'default')).toEqual(start);
   });
 
   it('does not mutate its input', () => {

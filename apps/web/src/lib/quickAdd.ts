@@ -10,7 +10,8 @@ export interface QuickAddResult {
   /** Title as written to Google: the display title with its #tags. */
   rawTitle: string;
   tags: string[];
-  points: 1 | 2 | 3;
+  /** 0 is a schedule-only event (`!0`): on the calendar, never a task. */
+  points: 0 | 1 | 2 | 3;
   /** Whether the text set the points (`!2`) or the day/time, rather than the defaults. */
   hasPoints: boolean;
   hasDate: boolean;
@@ -28,7 +29,7 @@ export interface QuickAddContext {
   defaultMinutes?: number;
 }
 
-const POINTS = /(^|\s)!([123])(?=\s|$)/;
+const POINTS = /(^|\s)!([0-3])(?=\s|$)/;
 const HOURS =
   /(^|\s)(?:for\s+)?(\d+(?:\.\d+)?)\s*(?:h|hrs?|hours?)(?:\s*(\d+)\s*(?:m|mins?|minutes?))?(?=\s|$)/i;
 const MINUTES = /(^|\s)(?:for\s+)?(\d+)\s*(?:m|mins?|minutes?)(?=\s|$)/i;
@@ -49,10 +50,10 @@ function takeDuration(text: string): { text: string; minutes: number | null } {
 
 export function parseQuickAdd(input: string, ctx: QuickAddContext): QuickAddResult {
   let text = input.trim();
-  let points: 1 | 2 | 3 = 1;
+  let points: 0 | 1 | 2 | 3 = 1;
   const p = POINTS.exec(text);
   if (p) {
-    points = Number(p[2]) as 1 | 2 | 3;
+    points = Number(p[2]) as 0 | 1 | 2 | 3;
     text = text.replace(p[0], p[1]!);
   }
   const duration = takeDuration(text);

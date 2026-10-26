@@ -224,6 +224,7 @@ The owner's answers fixed most rules. The 15 below filled gaps; each is already 
 | 14 | Google Calendar access is a separate Connect step after sign-in, run by Edge Functions | Google's refresh token never reaches the browser, and reconnecting is simple. |
 | 15 | Free-plan safeguards: a keep-alive ping every 3 days and a weekly encrypted backup | Free projects pause after a quiet week and get no daily backups. |
 | 16 | A finished day stays open for ticks until 12:00 local time the next day, then freezes (missed items, frozen score, streak) | A block done late at night can be ticked over breakfast, so ticking never pulls attention from the work itself. The 04:00 boundary still decides which day a block belongs to. |
+| 17 | A calendar block or Google task with the same name as a habit schedules that habit: it takes the habit's points and stands in for the day's habit item, rather than adding a second task | Putting a habit on the calendar is giving it a time, not planning more work. |
 
 ## 5. Features
 

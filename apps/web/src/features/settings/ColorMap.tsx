@@ -1,6 +1,7 @@
 import {
   type ColorKey,
   type ColorRule,
+  colorForPoints,
   type Points,
   setPrimary,
   setRulePoints,
@@ -16,12 +17,19 @@ interface Props {
   defaultColor?: string | null;
 }
 
-/** Section 3.2: map each Google event colour to 0 to 3 points, and pick the colour written per value. */
+/**
+ * Section 3.2: map each Google event colour to 0 to 3 points, and pick the colour written per
+ * value. The colour picked among the 0-point ones is the one schedule-only blocks get.
+ */
 export function ColorMap({ rules, onChange, defaultColor }: Props) {
   const byKey = new Map(rules.map((r) => [r.colorKey, r]));
   const sharedValues = new Set(
-    ([1, 2, 3] as const).filter((p) => rules.filter((r) => r.points === p).length > 1),
+    ([0, 1, 2, 3] as const).filter(
+      (p) => rules.filter((r) => r.points === p && (p > 0 || r.colorKey !== 'default')).length > 1,
+    ),
   );
+  // The colour each value writes: the stored primary, else the same fallback the server uses.
+  const writes = new Map(([0, 1, 2, 3] as const).map((p) => [p, colorForPoints(rules, p)]));
 
   return (
     <div>
@@ -33,7 +41,10 @@ export function ColorMap({ rules, onChange, defaultColor }: Props) {
       <ul className="divide-y divide-rule">
         {GOOGLE_EVENT_COLORS.map((c) => {
           const rule = byKey.get(c.key) ?? { colorKey: c.key, points: 0, primaryForPoints: false };
-          const showPrimary = rule.points > 0 && sharedValues.has(rule.points as 1 | 2 | 3);
+          const showPrimary =
+            sharedValues.has(rule.points) && (rule.points > 0 || c.key !== 'default');
+          const what =
+            rule.points === 0 ? 'schedule-only blocks' : `new ${rule.points}-point events`;
           return (
             <li
               key={c.key}
@@ -76,12 +87,12 @@ export function ColorMap({ rules, onChange, defaultColor }: Props) {
                   <input
                     type="radio"
                     name={`primary-${rule.points}`}
-                    checked={rule.primaryForPoints}
+                    checked={writes.get(rule.points) === c.key}
                     onChange={() => onChange(setPrimary(rules, c.key as ColorKey))}
                     className="accent-[var(--color-accent)]"
-                    aria-label={`Use ${c.name} for new ${rule.points}-point events`}
+                    aria-label={`Use ${c.name} for ${what}`}
                   />
-                  <span className="sm:hidden">Use for new {rule.points}-point events</span>
+                  <span className="sm:hidden">Use for {what}</span>
                 </label>
               ) : (
                 <span className="hidden sm:block" />

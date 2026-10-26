@@ -493,6 +493,26 @@ Deno.test('a calendar-default colour is written as no colour', async () => {
   assertEquals('colorId' in sent, false);
 });
 
+Deno.test('a schedule-only block (0 points) is written in Graphite and is not a task', async () => {
+  let sent: Record<string, unknown> = {};
+  const { api, applied } = setup({
+    google: (b) => ((sent = b), Response.json({ ...b, etag: '"n1"', status: 'confirmed' })),
+  });
+  const res = await api(
+    req('POST', '/items', {
+      title: 'Dinner',
+      points: 0,
+      start: '2026-10-22T20:00:00Z',
+      end: '2026-10-22T20:45:00Z',
+    }),
+  );
+  assertEquals(res.status, 201);
+  assertEquals(sent.colorId, '8');
+  const create = applied[0]!;
+  if (create.op !== 'create') throw new Error('expected a create');
+  assertEquals([create.item.points, create.item.status], [0, 'ignored']);
+});
+
 Deno.test('creating needs a writable calendar and a colour for the points', async () => {
   const none = setup({ noCalendar: true });
   assertEquals(
